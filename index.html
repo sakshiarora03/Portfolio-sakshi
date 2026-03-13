@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#060608" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description"
+        content="Rajsv Mahendra — Backend Engineer & Data Systems Architect specializing in scalable systems, data analytics, and intelligent applications." />
+    <meta name="author" content="Rajsv Mahendra" />
+
+    <meta property="og:title" content="Rajsv Mahendra — Backend & Data Systems Engineer" />
+    <meta property="og:description"
+        content="Architecting scalable backend systems and transforming complex data into actionable insights." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="images/profile.png" />
+
+    <title>Rajsv Mahendra — Backend & Data Systems Engineer</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style"
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Devicon for real tech logos -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/devicon.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="loading">
+
+    <!-- Overlays -->
+    <div class="grain" aria-hidden="true"></div>
+    <div class="scroll-bar" id="scroll-bar" aria-hidden="true"></div>
+    <div id="cur-dot" aria-hidden="true"></div>
+    <div id="cur-ring" aria-hidden="true"></div>
+
+    <!-- ============================================================
+         LOADER
+    ============================================================ -->
+    <div id="loader" role="status" aria-label="Loading">
+        <div class="loader-inner">
+            <p class="loader-wordmark">RM</p>
+            <div class="loader-track">
+                <div class="loader-fill" id="loader-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MOBILE NAV
+    ============================================================ -->
+    <div class="mob-nav" id="mob-nav" role="dialog" aria-label="Mobile navigation">
+        <a href="#lab" onclick="closeNav()">Home</a>
+        <a href="#hero" onclick="closeNav()">Intro</a>
+        <a href="#about" onclick="closeNav()">About</a>
+        <a href="#skills" onclick="closeNav()">Skills</a>
+        <a href="#projects" onclick="closeNav()">Projects</a>
+        <a href="#opensource" onclick="closeNav()">GitHub</a>
+        <a href="#contact" onclick="closeNav()">Contact</a>
+    </div>
+
+    <!-- ============================================================
+         NAV
+    ============================================================ -->
+    <nav class="nav" id="nav" role="navigation" aria-label="Main navigation">
+        <div class="nav-inner">
+            <a href="#lab" class="nav-logo" aria-label="Home">RM</a>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="#lab">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#skills">Skills</a></li>
+                <li><a href="#projects">Projects</a></li>
+                <li><a href="#opensource">GitHub</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <a href="https://drive.google.com/file/d/15SbFtL4Q9MnqPh9ayzAPyGAIVn2pDVAh/view?usp=sharing" target="_blank"
+                rel="noopener noreferrer" class="nav-cta"><span>Resume</span></a>
+            <button class="nav-burger" id="nav-burger" onclick="toggleNav()" aria-label="Toggle menu"
+                aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ============================================================
+         PARALLAX SVG BACKGROUND
+         ─────────────────────────────────────────────────────────────
+         FIXES APPLIED:
+         1. Expanded viewBox to 0 0 1000 900 so sun starts VISIBLE
+         2. Sun repositioned to cy="680" (within view) — parallax
+            pushes it down as you scroll
+         3. Hills start higher so the landscape feels immersive
+         4. Added ambient gradient layer for depth
+         5. Scene 2 (cityscape) starts partially visible for
+            smoother transition
+    ============================================================ -->
+    <div class="parallax-wrap" aria-hidden="true">
+        <svg id="psvg" viewBox="0 0 1000 900" preserveAspectRatio="xMidYMid slice">
+            <defs>
+                <!-- Sky gradient — warm gold horizon fading to deep space -->
+                <radialGradient id="sky-g" cx="50%" cy="35%" r="80%">
+                    <stop id="sky-s1" offset="0%" stop-color="#0e0c06" />
+                    <stop id="sky-s2" offset="100%" stop-color="#040406" />
+                </radialGradient>
+
+                <!-- Sun glow — large soft radial -->
+                <radialGradient id="sun-g" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#d4af37" stop-opacity=".55" />
+                    <stop offset="60%" stop-color="#b8960c" stop-opacity=".2" />
+                    <stop offset="100%" stop-color="#d4af37" stop-opacity="0" />
+                </radialGradient>
+
+                <!-- Ambient horizon glow -->
+                <radialGradient id="horizon-glow" cx="50%" cy="75%" r="60%">
+                    <stop offset="0%" stop-color="#d4af37" stop-opacity=".06" />
+                    <stop offset="50%" stop-color="#b8960c" stop-opacity=".02" />
+                    <stop offset="100%" stop-color="#d4af37" stop-opacity="0" />
+                </radialGradient>
+
+                <filter id="ff-blur">
+                    <feGaussianBlur stdDeviation="10" />
+                </filter>
+                <filter id="ff-glow">
+                    <feGaussianBlur stdDeviation="4" result="b" />
+                    <feMerge>
+                        <feMergeNode in="b" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+                <!-- Softer blur for ambient effects -->
+                <filter id="ff-soft">
+                    <feGaussianBlur stdDeviation="20" />
+                </filter>
+            </defs>
+
+            <!-- Sky background -->
+            <rect width="1000" height="900" fill="url(#sky-g)" />
+
+            <!-- Ambient horizon warmth -->
+            <ellipse cx="500" cy="700" rx="600" ry="300" fill="url(#horizon-glow)" filter="url(#ff-soft)" />
+
+            <!-- Sun glow — now visible within viewBox -->
+            <ellipse id="sun-glow" cx="500" cy="680" rx="300" ry="200" fill="url(#sun-g)" filter="url(#ff-blur)"
+                opacity=".7" />
+
+            <!-- Sun core — visible golden disc -->
+            <circle id="sun-core" cx="500" cy="640" r="75" fill="#d4af37" opacity=".35" filter="url(#ff-glow)" />
+
+            <!-- ── SCENE 1: Natural landscape hills ── -->
+            <g id="sc1">
+                <!-- Far hills — slowest parallax -->
+                <path id="hl-far"
+                    d="M0 900 L0 620 C100 570 200 610 300 580 C400 550 500 590 600 560 C700 530 850 580 1000 555 L1000 900Z"
+                    fill="#0a0a0e" opacity=".5" />
+
+                <!-- Mid hills -->
+                <path id="hl-mid"
+                    d="M0 900 L0 690 C120 640 280 700 420 665 C560 630 720 680 860 660 C940 650 980 670 1000 665 L1000 900Z"
+                    fill="#08080c" opacity=".68" />
+
+                <!-- Near hills — fastest parallax, ground plane -->
+                <path id="hl-near"
+                    d="M0 900 L0 760 C100 735 220 770 370 750 C520 730 680 760 830 745 C920 738 970 750 1000 745 L1000 900Z"
+                    fill="#060608" opacity=".92" />
+            </g>
+
+            <!-- ── SCENE 2: City skyline silhouette ── -->
+            <g id="sc2" opacity="0">
+                <path
+                    d="M0 900 L0 622 L44 622 L44 578 L82 578 L82 598 L119 598 L119 538 L151 538 L151 560 L200 560 L200 598 L252 598 L252 528 L280 528 L280 598 L334 598 L334 568 L360 568 L360 598 L404 598 L404 548 L430 520 L458 548 L458 598 L554 598 L554 568 L580 548 L610 568 L610 598 L652 598 L652 576 L680 558 L710 576 L710 598 L800 598 L800 612 L850 612 L850 590 L880 574 L910 590 L910 598 L1000 598 L1000 900Z"
+                    fill="#040406" />
+                <!-- Building windows — warm gold lights -->
+                <rect x="126" y="550" width="4" height="6" rx="1" fill="#d4af37" opacity=".15" />
+                <rect x="140" y="560" width="4" height="6" rx="1" fill="#00d4e8" opacity=".08" />
+                <rect x="258" y="540" width="4" height="6" rx="1" fill="#d4af37" opacity=".12" />
+                <rect x="270" y="555" width="3" height="4" rx="1" fill="#d4af37" opacity=".08" />
+                <rect x="412" y="535" width="4" height="6" rx="1" fill="#00d4e8" opacity=".1" />
+                <rect x="440" y="530" width="3" height="5" rx="1" fill="#d4af37" opacity=".1" />
+                <rect x="564" y="578" width="4" height="6" rx="1" fill="#d4af37" opacity=".12" />
+                <rect x="590" y="558" width="3" height="4" rx="1" fill="#00d4e8" opacity=".06" />
+                <rect x="660" y="565" width="4" height="6" rx="1" fill="#8b5cf6" opacity=".08" />
+                <rect x="690" y="570" width="3" height="4" rx="1" fill="#d4af37" opacity=".08" />
+                <rect x="810" y="600" width="4" height="6" rx="1" fill="#d4af37" opacity=".08" />
+                <rect x="860" y="582" width="4" height="6" rx="1" fill="#d4af37" opacity=".1" />
+                <rect x="890" y="580" width="3" height="4" rx="1" fill="#00d4e8" opacity=".06" />
+            </g>
+
+            <!-- ── SCENE 3: Deep space — stars + shooting star ── -->
+            <g id="sc3" opacity="0">
+                <g id="stars"></g>
+                <line id="sstar" x1="900" y1="50" x2="900" y2="50" stroke="#d4af37" stroke-width="1.5" opacity="0"
+                    stroke-linecap="round" />
+            </g>
+        </svg>
+    </div>
+
+    <main>
+
+        <!-- ========================================================
+             1. LIQUID GLASS — Landing section
+        ======================================================== -->
+        <section id="lab" class="liquid-section">
+            <div id="liquid-canvas"></div>
+            <div class="liquid-ghost" aria-hidden="true">
+                <p class="liquid-ghost-name">RAJSV</p>
+                <p class="liquid-ghost-sub">Data · Backend · Systems</p>
+            </div>
+            <div class="liquid-scroll-cue" aria-hidden="true">
+                <div class="scroll-mouse"><span></span></div>
+                <p>Scroll to enter</p>
+            </div>
+            <p class="liquid-hint" aria-hidden="true">Click & drag to interact</p>
+        </section>
+
+        <!-- ========================================================
+             2. HERO
+        ======================================================== -->
+        <section id="hero" class="hero">
+            <div class="hero-mesh" aria-hidden="true"></div>
+            <div class="container">
+                <div id="hero-content">
+                    <span class="hero-kicker">Computer Science Engineer</span>
+                    <h1 class="hero-name" id="hero-name">RAJSV <br> MAHENDRA</h1>
+                    <p class="hero-role" id="hero-role">Backend Engineer & Data Systems Architect</p>
+                    <p class="hero-tag" id="hero-tag">
+                        Creating scalable backend systems and transforming complex data into actionable insights.
+                    </p>
+                    <div class="hero-actions" id="hero-actions">
+                        <a href="#projects" class="btn-primary">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <rect x="2" y="3" width="20" height="14" rx="2" />
+                                <path d="M8 21h8M12 17v4" />
+                            </svg>
+                            <span>View Projects</span>
+                        </a>
+                        <a href="https://drive.google.com/file/d/15SbFtL4Q9MnqPh9ayzAPyGAIVn2pDVAh/view?usp=sharing"
+                            target="_blank" rel="noopener noreferrer" class="btn-ghost">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            <span>Download Resume</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="scroll-hint" id="scroll-hint" aria-hidden="true">
+                <div class="scroll-mouse"><span></span></div>
+                <p>Explore</p>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             3. ABOUT
+        ======================================================== -->
+        <section id="about" class="section">
+            <div class="container">
+                <div class="about-grid">
+
+                    <!-- LEFT: Bio -->
+                    <div class="about-left">
+                        <span class="sec-label">01 — About</span>
+                        <h2 class="sec-heading">About Me</h2>
+                        <div style="margin-top:2.5rem;">
+                            <p class="about-bio">
+                                I am Rajsv Mahendra, a Computer Science Engineering student specializing in backend
+                                architecture, data analytics, and intelligent application development. My expertise lies
+                                in designing scalable systems that convert raw data into strategic insights and robust
+                                software solutions.
+                            </p>
+                            <p class="about-bio">
+                                My portfolio encompasses full-stack development, machine learning implementations, and
+                                real-time communication systems. I continuously explore cutting-edge web technologies
+                                and data platforms to deliver solutions that balance technical excellence with intuitive
+                                user experiences.
+                            </p>
+                        </div>
+
+                        <div class="pill" style="margin-top:2.2rem;width:fit-content;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                <circle cx="12" cy="10" r="3" />
+                            </svg>
+                            <span>Based in India</span>
+                        </div>
+
+                        <!-- Quick tech badges -->
+                        <div class="about-tech-row">
+                            <span class="about-tech-badge"><i class="devicon-python-plain"></i> Python</span>
+                            <span class="about-tech-badge"><i class="devicon-java-plain"></i> Java</span>
+                            <span class="about-tech-badge"><i class="devicon-nodejs-plain"></i> Node.js</span>
+                            <span class="about-tech-badge"><i class="devicon-react-original"></i> React</span>
+                            <span class="about-tech-badge"><i class="devicon-mongodb-plain"></i> MongoDB</span>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: ProfileCard + Terminal stacked -->
+                    <div class="about-right">
+
+                        <!-- Profile Card — 3D tilt via JS -->
+                        <div class="pc-card-wrapper" id="pc-wrapper">
+                            <section class="pc-card" id="pc-card">
+                                <div class="pc-inside">
+                                    <div class="pc-shine" aria-hidden="true"></div>
+                                    <div class="pc-glare" aria-hidden="true"></div>
+
+                                    <div class="pc-content pc-avatar-content">
+                                        <img class="pc-avatar-img" src="images/profile.png" alt="Rajsv Mahendra"
+                                            loading="lazy"
+                                            onerror="this.style.opacity='0';this.nextElementSibling.style.display='flex';">
+                                        <div class="pc-avatar-fallback" style="display:none;">RM</div>
+
+                                        <div class="pc-user-info">
+                                            <div class="pc-user-details">
+                                                <div class="pc-mini-avatar">
+                                                    <img src="images/profile.png" alt="mini avatar" loading="lazy"
+                                                        onerror="this.style.opacity='0.3';">
+                                                </div>
+                                                <div class="pc-user-text">
+                                                    <div class="pc-handle">@rajsvmahendra</div>
+                                                    <div class="pc-status-text">
+                                                        <span class="pc-status-dot"></span>
+                                                        Available
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <a href="#contact" class="pc-contact-btn">Contact</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="pc-content pc-bottom-content">
+                                        <div class="pc-details">
+                                            <h3>Rajsv Mahendra</h3>
+                                            <p>Backend Engineer & Data Architect</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <!-- Terminal -->
+                        <div class="terminal" role="presentation">
+                            <div class="terminal-bar">
+                                <div class="t-dots" aria-hidden="true">
+                                    <span></span><span></span><span></span>
+                                </div>
+                                <span class="t-title">terminal — rajsvmahendra@dev</span>
+                            </div>
+                            <div class="terminal-body">
+                                <div class="t-line">
+                                    <span class="t-prompt">➜</span><span> whoami</span>
+                                </div>
+                                <div class="t-line">
+                                    <span class="t-out" id="tl1" style="opacity:0">rajsv_mahendra</span>
+                                </div>
+                                <div class="t-line" style="margin-top:.2rem">
+                                    <span class="t-prompt">➜</span><span> cat expertise.yml</span>
+                                </div>
+                                <div class="t-line">
+                                    <span class="t-out" id="tl2" style="opacity:0">backend | data_analytics | ml |
+                                        real_time_systems</span>
+                                </div>
+                                <div class="t-line" style="margin-top:.2rem">
+                                    <span class="t-prompt">➜</span><span> git status</span>
+                                </div>
+                                <div class="t-line">
+                                    <span class="t-out cyan" id="tl3" style="opacity:0">Building next-gen
+                                        solutions...</span>
+                                </div>
+                                <div class="t-line">
+                                    <span class="t-cursor" aria-hidden="true">...▊</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             4. SKILLS
+        ======================================================== -->
+        <section id="skills" class="section" style="padding-top:0;">
+            <div class="container">
+                <div class="text-center">
+                    <span class="sec-label">02 — Expertise</span>
+                    <h2 class="sec-heading">Technical Stack</h2>
+                </div>
+                <div class="skills-grid">
+                    <div class="skill-card glass" data-tilt data-tilt-max="5">
+                        <p class="skill-cat">Programming Languages</p>
+                        <div class="skill-pills">
+                            <span class="skill-pill"><i class="devicon-java-plain" aria-hidden="true"></i> Java</span>
+                            <span class="skill-pill"><i class="devicon-python-plain" aria-hidden="true"></i>
+                                Python</span>
+                            <span class="skill-pill"><i class="devicon-javascript-plain" aria-hidden="true"></i>
+                                JavaScript</span>
+                            <span class="skill-pill"><i class="devicon-mysql-plain" aria-hidden="true"></i> SQL</span>
+                        </div>
+                    </div>
+                    <div class="skill-card glass" data-tilt data-tilt-max="5">
+                        <p class="skill-cat">Web Technologies</p>
+                        <div class="skill-pills">
+                            <span class="skill-pill"><i class="devicon-react-original" aria-hidden="true"></i>
+                                React</span>
+                            <span class="skill-pill"><i class="devicon-nodejs-plain" aria-hidden="true"></i>
+                                Node.js</span>
+                            <span class="skill-pill"><i class="devicon-express-original" aria-hidden="true"></i>
+                                Express.js</span>
+                            <span class="skill-pill"><i class="devicon-html5-plain" aria-hidden="true"></i>
+                                HTML/CSS</span>
+                        </div>
+                    </div>
+                    <div class="skill-card glass" data-tilt data-tilt-max="5">
+                        <p class="skill-cat">Backend & APIs</p>
+                        <div class="skill-pills">
+                            <span class="skill-pill"><i class="devicon-fastapi-plain" aria-hidden="true"></i> REST
+                                APIs</span>
+                            <span class="skill-pill"><i class="devicon-json-plain" aria-hidden="true"></i>
+                                Authentication</span>
+                            <span class="skill-pill"><i class="devicon-socketio-original" aria-hidden="true"></i>
+                                Socket.IO</span>
+                            <span class="skill-pill"><i class="devicon-nodejs-plain" aria-hidden="true"></i>
+                                WebSockets</span>
+                        </div>
+                    </div>
+                    <div class="skill-card glass" data-tilt data-tilt-max="5">
+                        <p class="skill-cat">Data & Analytics</p>
+                        <div class="skill-pills">
+                            <span class="skill-pill"><i class="devicon-tensorflow-original" aria-hidden="true"></i>
+                                Machine Learning</span>
+                            <span class="skill-pill"><i class="devicon-pandas-original" aria-hidden="true"></i> Data
+                                Analysis</span>
+                            <span class="skill-pill"><i class="devicon-azure-plain" aria-hidden="true"></i> Power
+                                BI</span>
+                            <span class="skill-pill"><i class="devicon-matplotlib-plain" aria-hidden="true"></i>
+                                Visualization</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="skills-extra glass">
+                    <div class="skill-pills wrap">
+                        <span class="skill-pill"><i class="devicon-hadoop-plain" aria-hidden="true"></i> Hadoop</span>
+                        <span class="skill-pill"><i class="devicon-mongodb-plain" aria-hidden="true"></i>
+                            MongoDB</span>
+                        <span class="skill-pill"><i class="devicon-git-plain" aria-hidden="true"></i> Git/GitHub</span>
+                        <span class="skill-pill"><i class="devicon-streamlit-plain" aria-hidden="true"></i>
+                            Streamlit</span>
+                        <span class="skill-pill"><i class="devicon-java-plain" aria-hidden="true"></i> JavaFX</span>
+                        <span class="skill-pill"><i class="devicon-androidstudio-plain" aria-hidden="true"></i> Android
+                            Studio</span>
+                        <span class="skill-pill"><i class="devicon-thealgorithms-plain" aria-hidden="true"></i>
+                            DSA</span>
+                        <span class="skill-pill"><i class="devicon-archlinux-plain" aria-hidden="true"></i> System
+                            Design</span>
+                        <span class="skill-pill"><i class="devicon-postgresql-plain" aria-hidden="true"></i>
+                            DBMS</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             5. PROJECTS
+        ======================================================== -->
+        <section id="projects" class="section" style="padding-top:0;">
+            <div class="container">
+                <div class="proj-header">
+                    <div>
+                        <span class="sec-label">03 — Portfolio</span>
+                        <h2 class="sec-heading">Featured Projects</h2>
+                    </div>
+                    <div class="proj-nav">
+                        <button class="proj-btn" id="proj-prev" aria-label="Previous projects">&#8592;</button>
+                        <span class="proj-count" id="proj-count" aria-live="polite">01 / 10</span>
+                        <button class="proj-btn" id="proj-next" aria-label="Next projects">&#8594;</button>
+                    </div>
+                </div>
+                <div class="carousel-wrap">
+                    <div class="carousel-track" id="proj-track" role="list"></div>
+                </div>
+                <div class="carousel-dots" id="proj-dots" role="tablist" aria-label="Project pages"></div>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             6. GITHUB
+        ======================================================== -->
+        <section id="opensource" class="section" style="padding-top:0;">
+            <div class="container">
+                <div class="text-center">
+                    <span class="sec-label">04 — Open Source</span>
+                    <h2 class="sec-heading">GitHub Activity</h2>
+                </div>
+                <div class="github-container">
+                    <div class="gh-profile-card glass" data-tilt data-tilt-max="4">
+                        <div class="gh-avatar" id="gh-avatar">
+                            <div class="avatar-placeholder">RM</div>
+                        </div>
+                        <div class="gh-username">
+                            <i class="fab fa-github" aria-hidden="true"></i>
+                            <span id="gh-username">rajsvmahendra</span>
+                        </div>
+                        <p class="gh-bio" id="gh-bio">Loading profile...</p>
+                        <div class="gh-stats">
+                            <div class="gh-stat-item">
+                                <span class="gh-stat-val" id="gh-repos" data-count="0">--</span>
+                                <span class="gh-stat-label">Repositories</span>
+                            </div>
+                            <div class="gh-stat-item">
+                                <span class="gh-stat-val" id="gh-followers" data-count="0">--</span>
+                                <span class="gh-stat-label">Followers</span>
+                            </div>
+                            <div class="gh-stat-item">
+                                <span class="gh-stat-val" id="gh-following" data-count="0">--</span>
+                                <span class="gh-stat-label">Following</span>
+                            </div>
+                        </div>
+                        <a href="https://github.com/rajsvmahendra" target="_blank" rel="noopener noreferrer"
+                            class="btn-github">
+                            <i class="fab fa-github" aria-hidden="true"></i>
+                            View Profile
+                        </a>
+                    </div>
+                    <div class="contribution-graph-wrapper glass" data-tilt data-tilt-max="3">
+                        <h3 class="graph-title">Contribution Activity</h3>
+                        <div class="contribution-graph" id="gh-graph" aria-label="GitHub contribution graph">
+                            <div class="graph-loading">Loading contributions...</div>
+                        </div>
+                        <div class="graph-meta" id="graph-meta-text" aria-live="polite">Fetching data...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             7. CONTACT
+        ======================================================== -->
+        <section id="contact" class="section" style="padding-top:0;">
+            <div class="container text-center">
+                <span class="sec-label">05 — Get in Touch</span>
+                <h2 class="sec-heading">Let's Collaborate</h2>
+                <p class="contact-intro">
+                    Available for internship opportunities, collaborative projects, and challenging technical problems.
+                    Let's build something exceptional together.
+                </p>
+                <div class="contact-grid">
+                    <a href="mailto:rajasvmahendra@gmail.com" class="c-card glass" data-tilt data-tilt-max="6">
+                        <div class="c-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round" aria-hidden="true">
+                                <rect x="2" y="4" width="20" height="16" rx="2" />
+                                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                            </svg>
+                        </div>
+                        <span class="c-label">Email</span>
+                        <span class="c-val">rajasvmahendra@gmail.com</span>
+                    </a>
+                    <a href="https://www.linkedin.com/in/rajsvmahendra/" target="_blank" rel="noopener noreferrer"
+                        class="c-card glass" data-tilt data-tilt-max="6">
+                        <div class="c-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path
+                                    d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                            </svg>
+                        </div>
+                        <span class="c-label">LinkedIn</span>
+                        <span class="c-val">rajsvmahendra</span>
+                    </a>
+                    <a href="https://github.com/rajsvmahendra" target="_blank" rel="noopener noreferrer"
+                        class="c-card glass" data-tilt data-tilt-max="6">
+                        <div class="c-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path
+                                    d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                            </svg>
+                        </div>
+                        <span class="c-label">GitHub</span>
+                        <span class="c-val">rajsvmahendra</span>
+                    </a>
+                    <div class="c-card glass" data-tilt data-tilt-max="6">
+                        <div class="c-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round" aria-hidden="true">
+                                <path
+                                    d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.79a16 16 0 0 0 6.29 6.29l1.88-1.88a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                            </svg>
+                        </div>
+                        <span class="c-label">Phone</span>
+                        <span class="c-val">+91 9026105513</span>
+                    </div>
+                </div>
+                <div class="resume-wrap">
+                    <a href="https://drive.google.com/file/d/15SbFtL4Q9MnqPh9ayzAPyGAIVn2pDVAh/view?usp=sharing"
+                        target="_blank" rel="noopener noreferrer" class="btn-resume">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        <span>Download Resume</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             8. FOOTER — macOS Dock
+        ======================================================== -->
+        <footer class="footer">
+            <p class="footer-text">&copy; 2025 Rajsv Mahendra — Engineered with precision and passion</p>
+
+            <nav class="dock" id="dock" aria-label="Quick navigation dock">
+                <div class="dock-container">
+                    <a href="#lab" class="dock-item" data-label="Home">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                        </svg>
+                    </a>
+                    <a href="#about" class="dock-item" data-label="About">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                    </a>
+                    <a href="#skills" class="dock-item" data-label="Skills">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round">
+                            <polyline points="16 18 22 12 16 6" />
+                            <polyline points="8 6 2 12 8 18" />
+                        </svg>
+                    </a>
+                    <a href="#projects" class="dock-item" data-label="Projects">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" />
+                            <path d="M8 21h8M12 17v4" />
+                        </svg>
+                    </a>
+                    <a href="#opensource" class="dock-item" data-label="GitHub">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                        </svg>
+                    </a>
+                    <a href="#contact" class="dock-item" data-label="Contact">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                    </a>
+                    <a href="https://drive.google.com/file/d/15SbFtL4Q9MnqPh9ayzAPyGAIVn2pDVAh/view?usp=sharing"
+                        target="_blank" rel="noopener noreferrer" class="dock-item" data-label="Resume">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                    </a>
+                </div>
+            </nav>
+        </footer>
+
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+    <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.1/build/three.module.js"}}</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>

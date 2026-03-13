@@ -1,0 +1,2719 @@
+import * as THREE from "three";
+
+/* ================================================================
+   HELPERS
+================================================================ */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+const THEME = {
+    gold: { r: 212, g: 175, b: 55 },
+    goldLight: { r: 245, g: 212, b: 66 },
+    cyan: { r: 0, g: 212, b: 232 },
+    violet: { r: 139, g: 92, b: 246 },
+    emerald: { r: 16, g: 185, b: 129 },
+    rgba(c, a = 1) {
+        return `rgba(${c.r},${c.g},${c.b},${a})`;
+    },
+    hsla(h, s, l, a = 1) {
+        return `hsla(${h},${s}%,${l}%,${a})`;
+    },
+};
+
+/* ================================================================
+   INJECT DYNAMIC CSS  (morph streak, particles, dock‑active, perf)
+================================================================ */
+const _dynamicCSS = document.createElement("style");
+_dynamicCSS.textContent = `
+/* ---- dock active indicator ---- */
+.dock-item.active{background:rgba(212,175,55,.12)!important;border-color:rgba(212,175,55,.25)!important;color:#d4af37!important}
+.dock-item.active::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#d4af37;box-shadow:0 0 6px rgba(212,175,55,.6)}
+/* ---- performance hints ---- */
+.nav-links a,.nav-logo,.nav-cta,.nav-burger{will-change:transform,opacity}
+.dock-item{will-change:width,height}
+/* ---- let GSAP own dock transitions ---- */
+#dock{transition:none!important}
+/* ---- morph streak ---- */
+.morph-streak{position:fixed;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent 0%,rgba(212,175,55,0) 10%,rgba(212,175,55,.8) 30%,rgba(245,212,66,1) 50%,rgba(212,175,55,.8) 70%,rgba(212,175,55,0) 90%,transparent 100%);box-shadow:0 0 20px 4px rgba(212,175,55,.4),0 0 40px 8px rgba(212,175,55,.15);z-index:10001;pointer-events:none;opacity:0;top:0}
+/* ---- morph particles ---- */
+.morph-particle{position:fixed;border-radius:50%;background:radial-gradient(circle,#f5d442,#d4af37);box-shadow:0 0 6px rgba(212,175,55,.8),0 0 12px rgba(212,175,55,.3);z-index:10002;pointer-events:none}
+`;
+document.head.appendChild(_dynamicCSS);
+
+/* ================================================================
+   CREATE MORPH STREAK ELEMENT (re‑used across transitions)
+================================================================ */
+const morphStreak = document.createElement("div");
+morphStreak.className = "morph-streak";
+document.body.appendChild(morphStreak);
+
+/* ================================================================
+   LOADER
+================================================================ */
+const loaderFill = $("#loader-fill");
+const loaderEl = $("#loader");
+
+if (loaderFill && loaderEl) {
+    gsap.to(loaderFill, {
+        width: "100%",
+        duration: 1.6,
+        ease: "power2.inOut",
+        onComplete: () => {
+            gsap.to(loaderEl, {
+                opacity: 0,
+                duration: 0.5,
+                ease: "power2.out",
+                onComplete: () => {
+                    loaderEl.style.display = "none";
+                    document.body.classList.remove("loading");
+                    siteEntrance();
+                },
+            });
+        },
+    });
+} else {
+    document.body.classList.remove("loading");
+    requestAnimationFrame(() => siteEntrance());
+}
+
+/* ================================================================
+   CURSOR
+================================================================ */
+const curDot = $("#cur-dot");
+const curRing = $("#cur-ring");
+let mx = 0,
+    my = 0,
+    rx = 0,
+    ry = 0;
+
+if (curDot && curRing) {
+    document.addEventListener("mousemove", (e) => {
+        mx = e.clientX;
+        my = e.clientY;
+    });
+
+    (function cursorLoop() {
+        rx += (mx - rx) * 0.1;
+        ry += (my - ry) * 0.1;
+        curDot.style.left = mx + "px";
+        curDot.style.top = my + "px";
+        curRing.style.left = rx + "px";
+        curRing.style.top = ry + "px";
+        requestAnimationFrame(cursorLoop);
+    })();
+
+    function bindCursorHovers() {
+        const targets =
+            "a, button, .proj-card, .skill-pill, .c-card, .glass, .gh-profile-card, .contribution-graph-wrapper, .soc-btn, .btn-primary, .btn-ghost, .btn-resume, .btn-github, .nav-cta, .proj-btn, .c-dot, .profile-detail, .profile-card, .pc-card, .pc-contact-btn, .dock-item, .about-tech-badge";
+        $$(targets).forEach((el) => {
+            el.addEventListener("mouseenter", () => curRing.classList.add("hov"));
+            el.addEventListener("mouseleave", () => curRing.classList.remove("hov"));
+        });
+    }
+    bindCursorHovers();
+    setTimeout(bindCursorHovers, 600);
+    // re‑bind after projects render
+    setTimeout(bindCursorHovers, 1500);
+
+    window.addEventListener(
+        "touchstart",
+        () => {
+            curDot.style.display = "none";
+            curRing.style.display = "none";
+            document.body.style.cursor = "auto";
+        },
+        { once: true }
+    );
+}
+
+/* ================================================================
+   SCROLL PROGRESS
+================================================================ */
+const scrollBar = $("#scroll-bar");
+if (scrollBar) {
+    let ticking = false;
+    window.addEventListener(
+        "scroll",
+        () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    const total =
+                        document.documentElement.scrollHeight - window.innerHeight;
+                    const pct = total > 0 ? (window.scrollY / total) * 100 : 0;
+                    scrollBar.style.width = pct + "%";
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        },
+        { passive: true }
+    );
+}
+
+/* ================================================================
+   MOBILE NAV
+================================================================ */
+window.toggleNav = () => {
+    const m = $("#mob-nav"),
+        b = $("#nav-burger");
+    if (!m || !b) return;
+    m.classList.toggle("open");
+    b.classList.toggle("open");
+    document.body.style.overflow = m.classList.contains("open") ? "hidden" : "";
+};
+
+window.closeNav = () => {
+    const m = $("#mob-nav"),
+        b = $("#nav-burger");
+    if (m) m.classList.remove("open");
+    if (b) b.classList.remove("open");
+    document.body.style.overflow = "";
+};
+
+/* ================================================================
+   SMOOTH SCROLL  (shared helper — sets _isScrollingTo flag)
+================================================================ */
+let _isScrollingTo = false;
+
+function smoothScrollTo(target, callback) {
+    _isScrollingTo = true;
+    gsap.to(window, {
+        scrollTo: { y: target, offsetY: 20 },
+        duration: 0.9,
+        ease: "power3.inOut",
+        onComplete: () => {
+            _isScrollingTo = false;
+            if (callback) callback();
+            // after programmatic scroll, reconcile morph state with final position
+            checkMorphState();
+        },
+    });
+}
+
+// Nav links
+$$(".nav-links a").forEach((link) => {
+    link.addEventListener("click", (e) => {
+        if (link.hash) {
+            e.preventDefault();
+            smoothScrollTo(link.hash);
+            window.closeNav();
+        }
+    });
+});
+
+// Mobile overlay links
+$$(".mob-nav a").forEach((link) => {
+    link.addEventListener("click", (e) => {
+        if (link.hash) {
+            e.preventDefault();
+            window.closeNav();
+            setTimeout(() => smoothScrollTo(link.hash), 300);
+        }
+    });
+});
+
+/* ================================================================
+   NAV ↔ DOCK  MORPH TRANSITION
+================================================================ */
+const nav = $(".nav");
+const dock = $("#dock");
+const dockContainer = dock?.querySelector(".dock-container");
+const dockItems = dock ? Array.from(dock.querySelectorAll(".dock-item")) : [];
+
+// morph state machine: 'init' → 'nav' → 'morphing' ⇄ 'dock'
+let morphState = "init";
+let entranceComplete = false;
+
+// initialise dock off‑screen / invisible
+if (dock) {
+    gsap.set(dock, {
+        xPercent: -50,
+        autoAlpha: 0,
+        y: 30,
+        pointerEvents: "none",
+    });
+}
+
+/* --- golden particles burst --- */
+function spawnMorphParticles(direction) {
+    const count = 12;
+    const startY = direction === "down" ? 60 : window.innerHeight - 60;
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement("div");
+        p.className = "morph-particle";
+        const sz = 3 + Math.random() * 5;
+        Object.assign(p.style, {
+            width: sz + "px",
+            height: sz + "px",
+            left: 15 + Math.random() * 70 + "%",
+            top: startY + "px",
+            opacity: "1",
+        });
+        document.body.appendChild(p);
+
+        const endY =
+            direction === "down"
+                ? startY + 80 + Math.random() * (window.innerHeight - startY - 160)
+                : startY - 80 - Math.random() * (startY - 120);
+
+        gsap.to(p, {
+            top: endY,
+            left: "+=" + (Math.random() - 0.5) * 200,
+            scale: 0,
+            opacity: 0,
+            duration: 0.5 + Math.random() * 0.5,
+            delay: Math.random() * 0.3,
+            ease: "power2.out",
+            onComplete: () => p.remove(),
+        });
+    }
+}
+
+/* --- morph → dock (scroll down) --- */
+function morphToDock() {
+    if (
+        morphState === "dock" ||
+        morphState === "morphing" ||
+        !entranceComplete ||
+        _isScrollingTo
+    )
+        return;
+    morphState = "morphing";
+
+    // kill competing tweens
+    gsap.killTweensOf([
+        nav,
+        dock,
+        morphStreak,
+        ".nav-links a",
+        ".nav-logo",
+        ".nav-cta",
+        ".nav-burger",
+    ]);
+    dockItems.forEach((d) => gsap.killTweensOf(d));
+
+    const tl = gsap.timeline({ onComplete: () => (morphState = "dock") });
+
+    /* 1 — nav items stagger out */
+    tl.to(
+        ".nav-links a",
+        {
+            y: -15,
+            autoAlpha: 0,
+            stagger: 0.03,
+            duration: 0.25,
+            ease: "power2.in",
+        },
+        0
+    )
+        .to(
+            ".nav-logo",
+            { y: -10, autoAlpha: 0, duration: 0.2, ease: "power2.in" },
+            0.04
+        )
+        .to(
+            ".nav-cta",
+            { y: -10, autoAlpha: 0, duration: 0.2, ease: "power2.in" },
+            0.06
+        )
+        .to(
+            ".nav-burger",
+            { y: -10, autoAlpha: 0, duration: 0.2, ease: "power2.in" },
+            0.04
+        )
+
+        /* 2 — nav slides up */
+        .to(nav, { yPercent: -100, duration: 0.35, ease: "power3.in" }, 0.12)
+
+        /* 3 — golden streak sweeps down */
+        .set(morphStreak, { top: 0, autoAlpha: 0.9 }, 0.18)
+        .to(
+            morphStreak,
+            { top: window.innerHeight, duration: 0.5, ease: "power2.inOut" },
+            0.18
+        )
+        .to(morphStreak, { autoAlpha: 0, duration: 0.15 }, 0.58)
+
+        /* 4 — particles */
+        .call(() => spawnMorphParticles("down"), null, 0.22)
+
+        /* 5 — dock container appears */
+        .set(dockItems, { scale: 0.3, autoAlpha: 0 }, 0.38)
+        .set(dock, { pointerEvents: "auto" }, 0.4)
+        .to(
+            dock,
+            { autoAlpha: 1, y: 0, duration: 0.55, ease: "elastic.out(1,.75)" },
+            0.4
+        )
+
+        /* 6 — dock items pop in */
+        .to(
+            dockItems,
+            {
+                scale: 1,
+                autoAlpha: 1,
+                stagger: 0.04,
+                duration: 0.35,
+                ease: "back.out(2.5)",
+            },
+            0.48
+        );
+
+    return tl;
+}
+
+/* --- morph → nav (scroll up) --- */
+function morphToNav() {
+    if (
+        morphState === "nav" ||
+        morphState === "morphing" ||
+        !entranceComplete ||
+        _isScrollingTo
+    )
+        return;
+    morphState = "morphing";
+
+    gsap.killTweensOf([
+        nav,
+        dock,
+        morphStreak,
+        ".nav-links a",
+        ".nav-logo",
+        ".nav-cta",
+        ".nav-burger",
+    ]);
+    dockItems.forEach((d) => gsap.killTweensOf(d));
+
+    const tl = gsap.timeline({ onComplete: () => (morphState = "nav") });
+
+    /* 1 — dock items shrink from centre */
+    tl.to(
+        dockItems,
+        {
+            scale: 0.5,
+            autoAlpha: 0,
+            stagger: { each: 0.03, from: "center" },
+            duration: 0.25,
+            ease: "power2.in",
+        },
+        0
+    )
+
+        /* 2 — dock slides down */
+        .to(dock, { autoAlpha: 0, y: 30, duration: 0.3, ease: "power2.in" }, 0.12)
+        .set(dock, { pointerEvents: "none" }, 0.42)
+
+        /* 3 — streak sweeps up */
+        .set(morphStreak, { top: window.innerHeight, autoAlpha: 0.9 }, 0.22)
+        .to(
+            morphStreak,
+            { top: 0, duration: 0.5, ease: "power2.inOut" },
+            0.22
+        )
+        .to(morphStreak, { autoAlpha: 0, duration: 0.15 }, 0.62)
+
+        /* 4 — particles upward */
+        .call(() => spawnMorphParticles("up"), null, 0.28)
+
+        /* 5 — nav slides in */
+        .to(nav, { yPercent: 0, duration: 0.45, ease: "power3.out" }, 0.38)
+
+        /* 6 — nav items fade in */
+        .to(
+            ".nav-logo",
+            { y: 0, autoAlpha: 1, duration: 0.3, ease: "power2.out" },
+            0.48
+        )
+        .to(
+            ".nav-burger",
+            { y: 0, autoAlpha: 1, duration: 0.3, ease: "power2.out" },
+            0.48
+        )
+        .to(
+            ".nav-links a",
+            {
+                y: 0,
+                autoAlpha: 1,
+                stagger: 0.03,
+                duration: 0.3,
+                ease: "power2.out",
+            },
+            0.5
+        )
+        .to(
+            ".nav-cta",
+            { y: 0, autoAlpha: 1, duration: 0.3, ease: "power2.out" },
+            0.53
+        );
+
+    return tl;
+}
+
+/* --- reconcile state after programmatic scroll --- */
+function checkMorphState() {
+    if (!entranceComplete || _isScrollingTo || morphState === "morphing") return;
+    const lab = document.getElementById("lab");
+    if (!lab) return;
+    const shouldBeDock =
+        lab.getBoundingClientRect().bottom < window.innerHeight * 0.3;
+    if (shouldBeDock && morphState !== "dock") morphToDock();
+    else if (!shouldBeDock && morphState !== "nav") morphToNav();
+}
+
+/* --- ScrollTrigger drives the morph --- */
+if (nav && dock && $("#lab")) {
+    ScrollTrigger.create({
+        trigger: "#lab",
+        start: "bottom 30%",
+        onEnter: () => {
+            if (!_isScrollingTo) morphToDock();
+        },
+        onLeaveBack: () => {
+            if (!_isScrollingTo) morphToNav();
+        },
+    });
+}
+
+/* ================================================================
+   DOCK — macOS MAGNIFICATION
+================================================================ */
+if (dock && dockContainer && dockItems.length) {
+    const DOCK_CFG = { BASE: 40, MAX: 64, RANGE: 160 };
+
+    if (window.matchMedia("(hover:hover)").matches) {
+        dockContainer.addEventListener("mousemove", (e) => {
+            const mouseX = e.clientX;
+            dockItems.forEach((item) => {
+                const rect = item.getBoundingClientRect();
+                const dist = Math.abs(mouseX - (rect.left + rect.width / 2));
+                const size = Math.min(
+                    DOCK_CFG.MAX,
+                    Math.max(
+                        DOCK_CFG.BASE,
+                        DOCK_CFG.MAX -
+                        (DOCK_CFG.MAX - DOCK_CFG.BASE) * (dist / DOCK_CFG.RANGE)
+                    )
+                );
+                const lift = (size - DOCK_CFG.BASE) * 0.5;
+                item.style.width = size + "px";
+                item.style.height = size + "px";
+                item.style.marginBottom = lift + "px";
+                const svg = item.querySelector("svg");
+                if (svg) {
+                    const is = 18 + (size - DOCK_CFG.BASE) * 0.25;
+                    svg.style.width = is + "px";
+                    svg.style.height = is + "px";
+                }
+            });
+        });
+
+        dockContainer.addEventListener("mouseleave", () => {
+            dockItems.forEach((item) => {
+                item.style.width = "";
+                item.style.height = "";
+                item.style.marginBottom = "";
+                const svg = item.querySelector("svg");
+                if (svg) {
+                    svg.style.width = "";
+                    svg.style.height = "";
+                }
+            });
+        });
+    }
+
+    // dock‑link smooth scroll
+    dockItems.forEach((link) => {
+        link.addEventListener("click", (e) => {
+            const href = link.getAttribute("href");
+            if (href && href.startsWith("#")) {
+                e.preventDefault();
+                smoothScrollTo(href);
+            }
+        });
+    });
+}
+
+/* ================================================================
+   ACTIVE SECTION TRACKING  (nav links + dock items)
+================================================================ */
+const sections = $$("section[id]");
+const navLinksAll = $$(".nav-links a");
+
+if (sections.length) {
+    sections.forEach((section) => {
+        new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const id = "#" + entry.target.id;
+                        navLinksAll.forEach((l) =>
+                            l.classList.toggle("active", l.getAttribute("href") === id)
+                        );
+                        dockItems.forEach((d) =>
+                            d.classList.toggle("active", d.getAttribute("href") === id)
+                        );
+                    }
+                });
+            },
+            { rootMargin: "-40% 0px -55% 0px" }
+        ).observe(section);
+    });
+}
+
+/* ================================================================
+   SITE ENTRANCE — liquid‑glass is first, hero animates on scroll
+================================================================ */
+function siteEntrance() {
+    // Force scroll to top on fresh load
+    window.scrollTo(0, 0);
+
+    // nav slides in
+    gsap.to(".nav", {
+        y: 0,
+        duration: 0.75,
+        ease: "power3.out",
+        delay: 0.1,
+        onComplete: () => {
+            morphState = "nav";
+            entranceComplete = true;
+            requestAnimationFrame(checkMorphState);
+        },
+    });
+
+    // liquid section elements — use SET + TO instead of FROM
+    // This prevents the "stuck at opacity 0" bug
+    gsap.set(".liquid-ghost-name", { opacity: 0, y: 30 });
+    gsap.to(".liquid-ghost-name", {
+        opacity: 1,
+        y: 0,
+        duration: 1,
+        ease: "power3.out",
+        delay: 0.3,
+    });
+
+    gsap.set(".liquid-ghost-sub", { opacity: 0, y: 20 });
+    gsap.to(".liquid-ghost-sub", {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: "power3.out",
+        delay: 0.5,
+    });
+
+    gsap.set(".liquid-scroll-cue", { opacity: 0 });
+    gsap.to(".liquid-scroll-cue", { opacity: 1, duration: 0.6, delay: 0.8 });
+
+    gsap.set(".liquid-hint", { opacity: 0 });
+    gsap.to(".liquid-hint", { opacity: 1, duration: 0.5, delay: 1 });
+
+    // hero entrance fires once
+    ScrollTrigger.create({
+        trigger: "#hero",
+        start: "top 80%",
+        once: true,
+        onEnter: () => heroEntrance(),
+    });
+}
+
+function heroEntrance() {
+    // Use SET + TO pattern — never use gsap.from() for critical UI elements
+    // gsap.from() can leave elements at opacity:0 if timing is off
+
+    const heroElements = [
+        { sel: ".hero-kicker", y: 25, dur: 0.6, delay: 0 },
+        { sel: ".hero-name", y: 60, dur: 0.9, delay: 0.15 },
+        { sel: ".hero-role", y: 20, dur: 0.55, delay: 0.35 },
+        { sel: ".hero-tag", y: 20, dur: 0.55, delay: 0.45 },
+    ];
+
+    heroElements.forEach(({ sel, y, dur, delay }) => {
+        const el = $(sel);
+        if (!el) return;
+        gsap.set(sel, { y, opacity: 0 });
+        gsap.to(sel, {
+            y: 0,
+            opacity: 1,
+            duration: dur,
+            delay,
+            ease: "power3.out",
+        });
+    });
+
+    // Hero action buttons — critical fix: these MUST become visible
+    const actions = $$(".hero-actions > *");
+    if (actions.length) {
+        actions.forEach((el, i) => {
+            gsap.set(el, { y: 18, opacity: 0 });
+            gsap.to(el, {
+                y: 0,
+                opacity: 1,
+                duration: 0.5,
+                delay: 0.55 + i * 0.08,
+                ease: "power3.out",
+            });
+        });
+    }
+
+    // Hero stats (if they exist — currently commented out in HTML)
+    const stats = $$(".hero-stats > div");
+    if (stats.length) {
+        stats.forEach((el, i) => {
+            gsap.set(el, { y: 20, opacity: 0 });
+            gsap.to(el, {
+                y: 0,
+                opacity: 1,
+                duration: 0.5,
+                delay: 0.7 + i * 0.1,
+                ease: "power3.out",
+            });
+        });
+    }
+
+    // Scroll hint
+    const scrollHint = $("#scroll-hint");
+    if (scrollHint) {
+        gsap.set(scrollHint, { opacity: 0 });
+        gsap.to(scrollHint, { opacity: 1, duration: 0.45, delay: 0.9 });
+    }
+}
+
+/* ================================================================
+   SCROLL REVEAL  — Fixed: uses SET+TO instead of FROM
+   The FROM pattern is dangerous because:
+   1. If ScrollTrigger fires before paint, element stays at from-state
+   2. If user refreshes mid-page, elements above viewport never animate
+   3. If element is dynamically created after FROM runs, it's invisible
+================================================================ */
+function reveal(sel, opts = {}) {
+    const elements = $$(sel);
+    if (!elements.length) return;
+
+    elements.forEach((el, i) => {
+        // Set initial hidden state
+        gsap.set(el, {
+            y: opts.y || 40,
+            opacity: 0,
+        });
+
+        // Create scroll-triggered animation TO visible state
+        ScrollTrigger.create({
+            trigger: opts.trigger || el,
+            start: opts.start || "top 92%",
+            once: true,
+            onEnter: () => {
+                gsap.to(el, {
+                    y: 0,
+                    opacity: 1,
+                    duration: opts.dur || 0.65,
+                    delay: opts.stagger ? i * opts.stagger : 0,
+                    ease: "power3.out",
+                });
+            },
+            // CRITICAL: if element is already in viewport when page loads,
+            // make it visible immediately
+            onLeaveBack: () => {
+                // Do nothing — keep visible once revealed
+            },
+        });
+    });
+
+    // Safety net: if any elements are already in viewport, reveal them
+    // This handles the case where page loads mid-scroll
+    requestAnimationFrame(() => {
+        elements.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.top < window.innerHeight * 0.92) {
+                gsap.to(el, {
+                    y: 0,
+                    opacity: 1,
+                    duration: opts.dur || 0.65,
+                    ease: "power3.out",
+                });
+            }
+        });
+    });
+}
+
+reveal(".sec-label", { y: 14 });
+reveal(".sec-heading", { y: 26 });
+reveal(".about-bio", { y: 20, stagger: 0.06 });
+reveal(".pill", { y: 10 });
+reveal(".about-tech-badge", { y: 12, stagger: 0.04 });
+reveal(".pc-card-wrapper", { y: 35, dur: 0.7 });
+reveal(".terminal", { y: 30, dur: 0.6 });
+reveal(".skill-card", { y: 28, stagger: 0.06 });
+reveal(".skills-extra", { y: 20 });
+reveal(".c-card", { y: 24, stagger: 0.04, start: "top 96%" });
+reveal(".btn-resume", { y: 16, start: "top 96%" });
+reveal(".gh-profile-card", { y: 34 });
+reveal(".contribution-graph-wrapper", { y: 34 });
+
+// /* ================================================================
+//    SITE ENTRANCE — liquid‑glass is first, hero animates on scroll
+// ================================================================ */
+// function siteEntrance() {
+//     // nav slides in
+//     gsap.to(".nav", {
+//         y: 0,
+//         duration: 0.75,
+//         ease: "power3.out",
+//         delay: 0.1,
+//         onComplete: () => {
+//             morphState = "nav";
+//             entranceComplete = true;
+//             requestAnimationFrame(checkMorphState);
+//         },
+//     });
+
+//     // liquid section elements
+//     gsap.from(".liquid-ghost-name", {
+//         opacity: 0,
+//         y: 30,
+//         duration: 1,
+//         ease: "power3.out",
+//         delay: 0.3,
+//     });
+//     gsap.from(".liquid-ghost-sub", {
+//         opacity: 0,
+//         y: 20,
+//         duration: 0.8,
+//         ease: "power3.out",
+//         delay: 0.5,
+//     });
+//     gsap.from(".liquid-scroll-cue", { opacity: 0, duration: 0.6, delay: 0.8 });
+//     gsap.from(".liquid-hint", { opacity: 0, duration: 0.5, delay: 1 });
+
+//     // hero entrance fires once
+//     ScrollTrigger.create({
+//         trigger: "#hero",
+//         start: "top 80%",
+//         once: true,
+//         onEnter: () => heroEntrance(),
+//     });
+// }
+
+// function heroEntrance() {
+//     const tl = gsap.timeline();
+//     tl.from(".hero-kicker", {
+//         y: 25,
+//         opacity: 0,
+//         duration: 0.6,
+//         ease: "power3.out",
+//     })
+//         .from(
+//             ".hero-name",
+//             { y: 60, opacity: 0, duration: 0.9, ease: "power3.out" },
+//             "-=.3"
+//         )
+//         .from(
+//             ".hero-role",
+//             { y: 20, opacity: 0, duration: 0.55, ease: "power3.out" },
+//             "-=.5"
+//         )
+//         .from(
+//             ".hero-tag",
+//             { y: 20, opacity: 0, duration: 0.55, ease: "power3.out" },
+//             "-=.4"
+//         )
+//         .from(
+//             ".hero-actions > *",
+//             {
+//                 y: 18,
+//                 opacity: 0,
+//                 stagger: 0.08,
+//                 duration: 0.5,
+//                 ease: "power3.out",
+//             },
+//             "-=.3"
+//         )
+//         .from(
+//             ".hero-stats > div",
+//             { y: 20, opacity: 0, stagger: 0.1, duration: 0.5, ease: "power3.out" },
+//             "-=.25"
+//         )
+//         .from("#scroll-hint", { opacity: 0, duration: 0.45 }, "-=.15");
+// }
+
+// /* ================================================================
+//    SCROLL REVEAL
+// ================================================================ */
+// function reveal(sel, opts = {}) {
+//     if (!$$(sel).length) return;
+//     gsap.from(sel, {
+//         y: opts.y || 40,
+//         opacity: 0,
+//         duration: opts.dur || 0.65,
+//         ease: "power3.out",
+//         stagger: opts.stagger || 0,
+//         scrollTrigger: {
+//             trigger: opts.trigger || sel,
+//             start: opts.start || "top 92%",
+//             once: true,
+//         },
+//     });
+// }
+
+// reveal(".sec-label", { y: 14 });
+// reveal(".sec-heading", { y: 26 });
+// reveal(".about-bio", { y: 20, stagger: 0.06 });
+// reveal(".pill", { y: 10 });
+// reveal(".about-tech-badge", { y: 12, stagger: 0.04 });
+// reveal(".pc-card-wrapper", { y: 35, dur: 0.7 });
+// reveal(".terminal", { y: 30, dur: 0.6 });
+// reveal(".skill-card", { y: 28, stagger: 0.06 });
+// reveal(".skills-extra", { y: 20 });
+// reveal(".c-card", { y: 24, stagger: 0.04, start: "top 96%" });
+// reveal(".btn-resume", { y: 16, start: "top 96%" });
+// reveal(".gh-profile-card", { y: 34 });
+// reveal(".contribution-graph-wrapper", { y: 34 });
+
+/* ================================================================
+   PROFILE CARD — 3‑D Tilt
+================================================================ */
+const pcWrapper = document.getElementById("pc-wrapper");
+const pcCard = document.getElementById("pc-card");
+
+if (pcWrapper && pcCard) {
+    const PC = {
+        SMOOTH: 600,
+        INIT_DUR: 1500,
+        IX: 70,
+        IY: 60,
+    };
+
+    const clamp = (v, mn = 0, mx = 100) => Math.min(Math.max(v, mn), mx);
+    const round = (v, p = 3) => parseFloat(v.toFixed(p));
+    const adjust = (v, f0, f1, t0, t1) =>
+        round(t0 + ((t1 - t0) * (v - f0)) / (f1 - f0));
+    const easeIO = (x) =>
+        x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+
+    let pcRaf = null;
+
+    function updateCard(ox, oy) {
+        const w = pcCard.clientWidth,
+            h = pcCard.clientHeight;
+        const px = clamp((100 / w) * ox),
+            py = clamp((100 / h) * oy);
+        const cx = px - 50,
+            cy = py - 50;
+        const m = {
+            "--pointer-x": `${px}%`,
+            "--pointer-y": `${py}%`,
+            "--background-x": `${adjust(px, 0, 100, 35, 65)}%`,
+            "--background-y": `${adjust(py, 0, 100, 35, 65)}%`,
+            "--pointer-from-center": `${clamp(Math.hypot(py - 50, px - 50) / 50, 0, 1)}`,
+            "--pointer-from-top": `${py / 100}`,
+            "--pointer-from-left": `${px / 100}`,
+            "--rotate-x": `${round(-(cx / 5))}deg`,
+            "--rotate-y": `${round(cy / 4)}deg`,
+            "--card-opacity": `${clamp(Math.hypot(py - 50, px - 50) / 50, 0, 1)}`,
+        };
+        Object.entries(m).forEach(([k, v]) => pcWrapper.style.setProperty(k, v));
+    }
+
+    function smoothReset(dur, sx, sy) {
+        const t0 = performance.now();
+        const tx = pcWrapper.clientWidth / 2,
+            ty = pcWrapper.clientHeight / 2;
+        (function loop(now) {
+            const p = clamp((now - t0) / dur);
+            updateCard(adjust(easeIO(p), 0, 1, sx, tx), adjust(easeIO(p), 0, 1, sy, ty));
+            if (p < 1) pcRaf = requestAnimationFrame(loop);
+        })(performance.now());
+    }
+
+    const cancelPc = () => {
+        if (pcRaf) cancelAnimationFrame(pcRaf);
+        pcRaf = null;
+    };
+
+    pcCard.addEventListener("pointerenter", () => {
+        cancelPc();
+        pcWrapper.classList.add("active");
+        pcCard.classList.add("active");
+    });
+    pcCard.addEventListener("pointermove", (e) => {
+        const r = pcCard.getBoundingClientRect();
+        updateCard(e.clientX - r.left, e.clientY - r.top);
+    });
+    pcCard.addEventListener("pointerleave", (e) => {
+        smoothReset(PC.SMOOTH, e.offsetX, e.offsetY);
+        pcWrapper.classList.remove("active");
+        pcCard.classList.remove("active");
+    });
+
+    ScrollTrigger.create({
+        trigger: pcWrapper,
+        start: "top 85%",
+        once: true,
+        onEnter: () => {
+            const ix = pcWrapper.clientWidth - PC.IX,
+                iy = PC.IY;
+            updateCard(ix, iy);
+            smoothReset(PC.INIT_DUR, ix, iy);
+        },
+    });
+}
+
+/* ================================================================
+   COUNTER ANIMATION
+================================================================ */
+$$(".stat-val[data-count], .gh-stat-val[data-count]").forEach((el) => {
+    const target = parseInt(el.getAttribute("data-count"), 10);
+    if (isNaN(target)) return;
+    const suffix = el.getAttribute("data-suffix") || "";
+    ScrollTrigger.create({
+        trigger: el,
+        start: "top 94%",
+        once: true,
+        onEnter: () => {
+            gsap.to(
+                { val: 0 },
+                {
+                    val: target,
+                    duration: 1.6,
+                    ease: "power2.out",
+                    onUpdate() {
+                        el.textContent = Math.round(this.targets()[0].val) + suffix;
+                    },
+                }
+            );
+        },
+    });
+});
+
+/* ================================================================
+   TERMINAL TYPEWRITER
+================================================================ */
+ScrollTrigger.create({
+    trigger: ".terminal",
+    start: "top 84%",
+    once: true,
+    onEnter: () => {
+        [
+            ["tl1", 300],
+            ["tl2", 700],
+            ["tl3", 1100],
+        ].forEach(([id, ms]) => {
+            setTimeout(() => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.transition = "opacity .35s";
+                    el.style.opacity = "1";
+                }
+            }, ms);
+        });
+    },
+});
+
+
+// /* ================================================================
+//    PARALLAX SVG
+// ================================================================ */
+// if ($("#lab")) {
+//     const s1 = gsap.timeline({
+//         scrollTrigger: {
+//             trigger: "#lab",
+//             start: "top top",
+//             end: "bottom top",
+//             scrub: 2.5,
+//         },
+//     });
+//     s1.to("#hl-far", { attr: { transform: "translate(0,-70)" } }, 0)
+//         .to("#hl-mid", { attr: { transform: "translate(0,-45)" } }, 0)
+//         .to("#hl-near", { attr: { transform: "translate(0,-25)" } }, 0)
+//         .to("#sun-core", { attr: { cy: 450, r: 55 } }, 0)
+//         .to("#sun-glow", { attr: { cy: 500 } }, 0)
+//         .to("#sky-s1", { attr: { "stop-color": "#0a0a0c" } }, 0)
+//         .to("#sc2", { opacity: 1 }, 0.35);
+// }
+// if ($("#hero")) {
+//     const s2 = gsap.timeline({
+//         scrollTrigger: {
+//             trigger: "#hero",
+//             start: "top top",
+//             end: "bottom top",
+//             scrub: 2.5,
+//         },
+//     });
+//     s2.to("#sc2", { opacity: 0 }, 0)
+//         .to("#sc3", { opacity: 1 }, 0.1)
+//         .to("#sky-s1", { attr: { "stop-color": "#040406" } }, 0)
+//         .to("#sun-core", { attr: { cy: 950 } }, 0);
+// }
+
+// // Stars
+// const starsGroup = document.getElementById("stars");
+// if (starsGroup) {
+//     for (let i = 0; i < 80; i++) {
+//         const star = document.createElementNS(
+//             "http://www.w3.org/2000/svg",
+//             "circle"
+//         );
+//         star.setAttribute("cx", Math.random() * 1000);
+//         star.setAttribute("cy", Math.random() * 400);
+//         star.setAttribute("r", 0.4 + Math.random() * 1.4);
+//         const roll = Math.random();
+//         let fill = `rgba(255,255,255,${0.4 + Math.random() * 0.5})`;
+//         if (roll < 0.15) fill = THEME.rgba(THEME.gold, 0.7);
+//         else if (roll < 0.25) fill = THEME.rgba(THEME.cyan, 0.5);
+//         star.setAttribute("fill", fill);
+//         starsGroup.appendChild(star);
+//         gsap.fromTo(
+//             star,
+//             { opacity: 0.12 + Math.random() * 0.5 },
+//             {
+//                 opacity: 0.03,
+//                 duration: 0.5 + Math.random() * 2.5,
+//                 repeat: -1,
+//                 yoyo: true,
+//                 delay: Math.random() * 5,
+//                 ease: "sine.inOut",
+//             }
+//         );
+//     }
+// }
+
+// // Shooting star
+// ScrollTrigger.create({
+//     trigger: "#about",
+//     start: "top 65%",
+//     once: true,
+//     onEnter: () => {
+//         const ss = document.getElementById("sstar");
+//         if (!ss) return;
+//         gsap.set(ss, { opacity: 0, attr: { x1: 900, y1: 50, x2: 900, y2: 50 } });
+//         ss.setAttribute("stroke", THEME.rgba(THEME.goldLight, 0.8));
+//         gsap.to(ss, {
+//             opacity: 1,
+//             duration: 0.05,
+//             onComplete: () => {
+//                 gsap.to(ss, {
+//                     attr: { x1: 180, y1: 340, x2: 210, y2: 355 },
+//                     opacity: 0,
+//                     duration: 0.9,
+//                     ease: "power2.in",
+//                 });
+//             },
+//         });
+//     },
+// });
+
+/* ================================================================
+   PARALLAX SVG  — Updated for viewBox 0 0 1000 900
+// ================================================================ */
+// if ($("#lab")) {
+//     const s1 = gsap.timeline({
+//         scrollTrigger: {
+//             trigger: "#lab",
+//             start: "top top",
+//             end: "bottom top",
+//             scrub: 1.5,
+//         },
+//     });
+//     s1.to("#hl-far", { attr: { transform: "translate(0,-90)" } }, 0)
+//         .to("#hl-mid", { attr: { transform: "translate(0,-55)" } }, 0)
+//         .to("#hl-near", { attr: { transform: "translate(0,-30)" } }, 0)
+//         .to("#sun-core", { attr: { cy: 780, r: 55 } }, 0)
+//         .to("#sun-glow", { attr: { cy: 820 } }, 0)
+//         .to("#sky-s1", { attr: { "stop-color": "#080806" } }, 0)
+//         .to("#sc2", { opacity: 1 }, 0.3);
+// }
+// if ($("#hero")) {
+//     const s2 = gsap.timeline({
+//         scrollTrigger: {
+//             trigger: "#hero",
+//             start: "top top",
+//             end: "bottom top",
+//             scrub: 1.5,
+//         },
+//     });
+//     s2.to("#sc2", { opacity: 0 }, 0)
+//         .to("#sc3", { opacity: 1 }, 0.1)
+//         .to("#sky-s1", { attr: { "stop-color": "#030304" } }, 0)
+//         .to("#sun-core", { attr: { cy: 1100 } }, 0)
+//         .to("#sun-glow", { attr: { cy: 1200, opacity: 0 } }, 0);
+// }
+
+// // Stars — spread across the expanded viewBox height
+// const starsGroup = document.getElementById("stars");
+// if (starsGroup) {
+//     for (let i = 0; i < 100; i++) {
+//         const star = document.createElementNS(
+//             "http://www.w3.org/2000/svg",
+//             "circle"
+//         );
+//         star.setAttribute("cx", Math.random() * 1000);
+//         star.setAttribute("cy", Math.random() * 550);
+//         star.setAttribute("r", 0.4 + Math.random() * 1.4);
+//         const roll = Math.random();
+//         let fill = `rgba(255,255,255,${0.4 + Math.random() * 0.5})`;
+//         if (roll < 0.15) fill = THEME.rgba(THEME.gold, 0.7);
+//         else if (roll < 0.25) fill = THEME.rgba(THEME.cyan, 0.5);
+//         star.setAttribute("fill", fill);
+//         starsGroup.appendChild(star);
+//         gsap.fromTo(
+//             star,
+//             { opacity: 0.12 + Math.random() * 0.5 },
+//             {
+//                 opacity: 0.03,
+//                 duration: 0.5 + Math.random() * 2.5,
+//                 repeat: -1,
+//                 yoyo: true,
+//                 delay: Math.random() * 5,
+//                 ease: "sine.inOut",
+//             }
+//         );
+//     }
+// }
+
+// // Shooting star
+// ScrollTrigger.create({
+//     trigger: "#about",
+//     start: "top 65%",
+//     once: true,
+//     onEnter: () => {
+//         const ss = document.getElementById("sstar");
+//         if (!ss) return;
+//         gsap.set(ss, { opacity: 0, attr: { x1: 900, y1: 50, x2: 900, y2: 50 } });
+//         ss.setAttribute("stroke", THEME.rgba(THEME.goldLight, 0.8));
+//         gsap.to(ss, {
+//             opacity: 1,
+//             duration: 0.05,
+//             onComplete: () => {
+//                 gsap.to(ss, {
+//                     attr: { x1: 180, y1: 340, x2: 210, y2: 355 },
+//                     opacity: 0,
+//                     duration: 0.9,
+//                     ease: "power2.in",
+//                 });
+//             },
+//         });
+//     },
+// });
+
+/* ================================================================
+   PARALLAX SVG  — Enhanced for visible, dramatic movement
+   ─────────────────────────────────────────────────────────────
+   ViewBox: 0 0 1000 900  |  Sun starts at cy=640  |  Hills 620-760
+   
+   The parallax creates a 3-act visual story:
+   ACT 1 (Liquid section scroll): Golden sunset sinks, hills rise,
+          sky darkens → city skyline fades in
+   ACT 2 (Hero section scroll): City dissolves, deep space with
+          twinkling stars appears, shooting star fires
+   ACT 3 (About onward): Full starfield, immersive dark space
+================================================================ */
+if ($("#lab")) {
+    const s1 = gsap.timeline({
+        scrollTrigger: {
+            trigger: "#lab",
+            start: "top top",
+            end: "bottom top",
+            scrub: 1.2,     // tight scrub — near-instant response
+        },
+    });
+
+    // Hills parallax — 3 layers at different speeds create depth
+    s1.to("#hl-far", {
+        attr: { transform: "translate(0,-120)" },  // farthest = moves most
+        ease: "none"
+    }, 0)
+        .to("#hl-mid", {
+            attr: { transform: "translate(0,-75)" },
+            ease: "none"
+        }, 0)
+        .to("#hl-near", {
+            attr: { transform: "translate(0,-40)" },    // nearest = moves least
+            ease: "none"
+        }, 0)
+
+        // Sun sinks dramatically
+        .to("#sun-core", {
+            attr: { cy: 800, r: 50 },
+            opacity: 0.2,
+            ease: "none"
+        }, 0)
+        .to("#sun-glow", {
+            attr: { cy: 850 },
+            opacity: 0.3,
+            ease: "none"
+        }, 0)
+
+        // Sky transitions from warm gold to cool dark
+        .to("#sky-s1", {
+            attr: { "stop-color": "#050504" },
+            ease: "none"
+        }, 0)
+
+        // City skyline fades in during second half of scroll
+        .to("#sc2", { opacity: 1, ease: "none" }, 0.4);
+}
+
+if ($("#hero")) {
+    const s2 = gsap.timeline({
+        scrollTrigger: {
+            trigger: "#hero",
+            start: "top top",
+            end: "bottom top",
+            scrub: 1.2,
+        },
+    });
+
+    // City dissolves
+    s2.to("#sc2", { opacity: 0, ease: "none" }, 0)
+
+        // Stars emerge
+        .to("#sc3", { opacity: 1, ease: "none" }, 0.05)
+
+        // Sky goes fully dark
+        .to("#sky-s1", {
+            attr: { "stop-color": "#020203" },
+            ease: "none"
+        }, 0)
+
+        // Sun completely exits below viewBox
+        .to("#sun-core", {
+            attr: { cy: 1200 },
+            opacity: 0,
+            ease: "none"
+        }, 0)
+        .to("#sun-glow", {
+            attr: { cy: 1300 },
+            opacity: 0,
+            ease: "none"
+        }, 0);
+}
+
+// Stars — denser field spread across the taller viewBox
+const starsGroup = document.getElementById("stars");
+if (starsGroup) {
+    for (let i = 0; i < 120; i++) {
+        const star = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+        );
+        star.setAttribute("cx", Math.random() * 1000);
+        star.setAttribute("cy", Math.random() * 600);
+        star.setAttribute("r", 0.3 + Math.random() * 1.6);
+        const roll = Math.random();
+        let fill = `rgba(255,255,255,${0.3 + Math.random() * 0.6})`;
+        if (roll < 0.12) fill = THEME.rgba(THEME.gold, 0.8);
+        else if (roll < 0.22) fill = THEME.rgba(THEME.cyan, 0.6);
+        else if (roll < 0.26) fill = THEME.rgba(THEME.violet, 0.4);
+        star.setAttribute("fill", fill);
+        starsGroup.appendChild(star);
+        gsap.fromTo(
+            star,
+            { opacity: 0.1 + Math.random() * 0.6 },
+            {
+                opacity: 0.02,
+                duration: 0.4 + Math.random() * 3,
+                repeat: -1,
+                yoyo: true,
+                delay: Math.random() * 4,
+                ease: "sine.inOut",
+            }
+        );
+    }
+}
+
+// Shooting star — dramatic golden streak
+ScrollTrigger.create({
+    trigger: "#about",
+    start: "top 65%",
+    once: true,
+    onEnter: () => {
+        const ss = document.getElementById("sstar");
+        if (!ss) return;
+        gsap.set(ss, {
+            opacity: 0,
+            attr: { x1: 850, y1: 30, x2: 850, y2: 30 }
+        });
+        ss.setAttribute("stroke", THEME.rgba(THEME.goldLight, 0.9));
+        ss.setAttribute("stroke-width", "2");
+        gsap.to(ss, {
+            opacity: 1,
+            duration: 0.08,
+            onComplete: () => {
+                gsap.to(ss, {
+                    attr: { x1: 120, y1: 320, x2: 160, y2: 340 },
+                    opacity: 0,
+                    duration: 0.75,
+                    ease: "power2.in",
+                });
+            },
+        });
+    },
+});
+
+/* ================================================================
+   PROJECT DATA
+================================================================ */
+const PROJECTS = [
+    {
+        n: "01",
+        t: "MailFlow AI",
+        d: "AI-powered email assistant that leverages Natural Language Processing to automatically generate professional and context-aware email responses, improving communication efficiency.",
+        tags: ["Python", "NLP", "OpenAI", "Streamlit"],
+        img: "images/mailflow.jpg",
+        grad: "linear-gradient(135deg,#0a0a10,#12100a)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "02",
+        t: "YouTube Clone",
+        d: "Responsive web application replicating YouTube's core interface with dynamic video rendering, reusable components, and modern frontend architecture.",
+        tags: ["React", "JavaScript", "CSS3", "API"],
+        img: "images/youtube.jpg",
+        grad: "linear-gradient(135deg,#120808,#0e0a12)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "03",
+        t: "Fraud Detection Engine",
+        d: "Machine learning system designed to identify suspicious financial transactions using anomaly detection techniques with an interactive analytics dashboard.",
+        tags: ["Python", "Scikit-learn", "Pandas", "Streamlit"],
+        img: "images/fraud.jpg",
+        grad: "linear-gradient(135deg,#080c10,#0a1014)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "04",
+        t: "QSR Analytics Dashboard",
+        d: "Data analytics dashboard built in Power BI to analyze Quick Service Restaurant market trends, nutritional insights, and consumer behavior patterns.",
+        tags: ["Power BI", "DAX", "Data Modeling", "SQL"],
+        img: "images/qsr.jpg",
+        grad: "linear-gradient(135deg,#100c06,#0a0c14)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "05",
+        t: "MiniStore",
+        d: "Lightweight e-commerce platform enabling product catalog management, browsing, and a streamlined shopping experience through a responsive web interface.",
+        tags: ["HTML5", "CSS3", "JavaScript", "Bootstrap"],
+        img: "images/ministore.jpg",
+        grad: "linear-gradient(135deg,#0a0e0a,#100e08)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "06",
+        t: "UniTrack",
+        d: "Desktop productivity management application developed using JavaFX to help students organize academic tasks, schedules, and progress tracking.",
+        tags: ["Java", "JavaFX", "SQLite", "MVC"],
+        img: "images/unitrack.jpg",
+        grad: "linear-gradient(135deg,#0c0a12,#100e18)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "07",
+        t: "RealTime Connect",
+        d: "Real-time chat application powered by WebSocket technology enabling instant messaging with scalable backend communication architecture.",
+        tags: ["Node.js", "Socket.IO", "Express", "MongoDB"],
+        img: "images/chat.jpg",
+        grad: "linear-gradient(135deg,#080e14,#0c0a10)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "08",
+        t: "MERN Content Management System",
+        d: "Full-stack CMS built with the MERN stack featuring secure authentication, OTP verification, and robust CRUD functionality for content management.",
+        tags: ["MongoDB", "Express", "React", "Node.js"],
+        img: "images/mern.jpg",
+        grad: "linear-gradient(135deg,#080c08,#0a0e14)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "09",
+        t: "Memory Visualizer",
+        d: "Interactive Python-based educational tool that visualizes memory allocation algorithms to help users understand operating system memory management concepts.",
+        tags: ["Python", "Tkinter", "Matplotlib", "Algorithms"],
+        img: "images/memory.jpg",
+        grad: "linear-gradient(135deg,#060a10,#0e0a14)",
+        github: "https://github.com/rajsvmahendra",
+    },
+    {
+        n: "10",
+        t: "EcoThunder",
+        d: "Environmental awareness platform designed to promote sustainable practices through educational content and interactive engagement.",
+        tags: ["HTML5", "CSS3", "JavaScript", "UX/UI"],
+        img: "images/eco.jpg",
+        grad: "linear-gradient(135deg,#060e08,#0a0c08)",
+        github: "https://github.com/rajsvmahendra",
+    },
+];
+
+const ICONS = [
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`,
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>`,
+];
+
+// /* ================================================================
+//    PROJECT CAROUSEL
+// ================================================================ */
+// const projTrack = document.getElementById("proj-track");
+// const projDots = document.getElementById("proj-dots");
+// const projCount = document.getElementById("proj-count");
+// const TOTAL_PROJ = PROJECTS.length;
+
+// if (projTrack) {
+//     PROJECTS.forEach((proj, idx) => {
+//         const card = document.createElement("div");
+//         card.className = "proj-card";
+//         card.innerHTML = `
+//       <div class="proj-img" style="background:${proj.grad}">
+//         <img src="${proj.img}" alt="${proj.t}" loading="lazy"
+//              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+//         <div class="proj-img-placeholder" style="display:none;">
+//           <div class="proj-icon-wrap">${ICONS[idx]}</div>
+//         </div>
+//       </div>
+//       <div class="proj-body">
+//         <p class="proj-num">${proj.n} / ${String(TOTAL_PROJ).padStart(2, "0")}</p>
+//         <h3 class="proj-title">${proj.t}</h3>
+//         <p class="proj-desc">${proj.d}</p>
+//         <div class="proj-tags">${proj.tags.map((t) => `<span class="proj-tag">${t}</span>`).join("")}</div>
+//         <div class="proj-footer">
+//           <a href="${proj.github}" target="_blank" rel="noopener" class="proj-link">View Project ↗</a>
+//           <div class="proj-arrow">→</div>
+//         </div>
+//       </div>`;
+//         projTrack.appendChild(card);
+//     });
+
+//     /* register reveal for dynamically‑created cards */
+//     reveal(".proj-card", { y: 34, stagger: 0.05 });
+
+//     function getColumns() {
+//         return window.innerWidth < 768 ? 1 : window.innerWidth < 1100 ? 2 : 4;
+//     }
+//     function getTotalPages() {
+//         return Math.ceil(TOTAL_PROJ / getColumns());
+//     }
+
+//     let currentPage = 0;
+
+//     function buildDots() {
+//         if (!projDots) return;
+//         projDots.innerHTML = "";
+//         const total = getTotalPages();
+//         for (let i = 0; i < total; i++) {
+//             const dot = document.createElement("div");
+//             dot.className = "c-dot" + (i === currentPage ? " on" : "");
+//             dot.addEventListener("click", () => goToPage(i));
+//             projDots.appendChild(dot);
+//         }
+//     }
+//     buildDots();
+
+//     function getCardWidth() {
+//         const cols = getColumns(),
+//             gap = 24;
+//         const containerWidth = Math.min(window.innerWidth - 80, 1240);
+//         return (containerWidth - gap * (cols - 1)) / cols + gap;
+//     }
+
+//     function goToPage(n) {
+//         const cols = getColumns(),
+//             max = getTotalPages() - 1;
+//         currentPage = Math.max(0, Math.min(n, max));
+//         projTrack.style.transform = `translateX(-${currentPage * cols * getCardWidth()}px)`;
+//         if (projCount) {
+//             const first = currentPage * cols + 1;
+//             projCount.textContent = `${String(first).padStart(2, "0")} / ${String(TOTAL_PROJ).padStart(2, "0")}`;
+//         }
+//         $$(".c-dot").forEach((d, i) => d.classList.toggle("on", i === currentPage));
+//     }
+
+//     document
+//         .getElementById("proj-prev")
+//         ?.addEventListener("click", () => goToPage(currentPage - 1));
+//     document
+//         .getElementById("proj-next")
+//         ?.addEventListener("click", () => goToPage(currentPage + 1));
+
+//     let carouselResize;
+//     window.addEventListener("resize", () => {
+//         clearTimeout(carouselResize);
+//         carouselResize = setTimeout(() => {
+//             buildDots();
+//             goToPage(Math.min(currentPage, getTotalPages() - 1));
+//         }, 200);
+//     });
+
+//     let touchStartX = 0;
+//     projTrack.addEventListener(
+//         "touchstart",
+//         (e) => {
+//             touchStartX = e.changedTouches[0].screenX;
+//         },
+//         { passive: true }
+//     );
+//     projTrack.addEventListener(
+//         "touchend",
+//         (e) => {
+//             const diff = touchStartX - e.changedTouches[0].screenX;
+//             if (Math.abs(diff) > 50) goToPage(currentPage + (diff > 0 ? 1 : -1));
+//         },
+//         { passive: true }
+//     );
+// }
+
+/* ================================================================
+   PROJECT CAROUSEL
+================================================================ */
+const projTrack = document.getElementById("proj-track");
+const projDots = document.getElementById("proj-dots");
+const projCount = document.getElementById("proj-count");
+const TOTAL_PROJ = PROJECTS.length;
+
+if (projTrack) {
+    PROJECTS.forEach((proj, idx) => {
+        const card = document.createElement("div");
+        card.className = "proj-card";
+        card.innerHTML = `
+      <div class="proj-img" style="background:${proj.grad}">
+        <img src="${proj.img}" alt="${proj.t}" loading="lazy"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="proj-img-placeholder" style="display:none;">
+          <div class="proj-icon-wrap">${ICONS[idx]}</div>
+        </div>
+      </div>
+      <div class="proj-body">
+        <p class="proj-num">${proj.n} / ${String(TOTAL_PROJ).padStart(2, "0")}</p>
+        <h3 class="proj-title">${proj.t}</h3>
+        <p class="proj-desc">${proj.d}</p>
+        <div class="proj-tags">${proj.tags.map((t) => `<span class="proj-tag">${t}</span>`).join("")}</div>
+        <div class="proj-footer">
+          <a href="${proj.github}" target="_blank" rel="noopener" class="proj-link">View Project ↗</a>
+          <div class="proj-arrow">→</div>
+        </div>
+      </div>`;
+        projTrack.appendChild(card);
+    });
+
+    // Register reveal for dynamically-created cards AFTER they exist in DOM
+    // Must use the fixed reveal() that uses SET+TO pattern
+    reveal(".proj-card", { y: 34, stagger: 0.05 });
+
+    function getColumns() {
+        return window.innerWidth < 768 ? 1 : window.innerWidth < 1100 ? 2 : 4;
+    }
+    function getTotalPages() {
+        return Math.ceil(TOTAL_PROJ / getColumns());
+    }
+
+    let currentPage = 0;
+
+    function buildDots() {
+        if (!projDots) return;
+        projDots.innerHTML = "";
+        const total = getTotalPages();
+        for (let i = 0; i < total; i++) {
+            const dot = document.createElement("div");
+            dot.className = "c-dot" + (i === currentPage ? " on" : "");
+            dot.addEventListener("click", () => goToPage(i));
+            projDots.appendChild(dot);
+        }
+    }
+    buildDots();
+
+    function getCardWidth() {
+        const cols = getColumns(),
+            gap = 24;
+        const containerWidth = Math.min(window.innerWidth - 80, 1240);
+        return (containerWidth - gap * (cols - 1)) / cols + gap;
+    }
+
+    function goToPage(n) {
+        const cols = getColumns(),
+            max = getTotalPages() - 1;
+        currentPage = Math.max(0, Math.min(n, max));
+        projTrack.style.transform = `translateX(-${currentPage * cols * getCardWidth()}px)`;
+        if (projCount) {
+            const first = currentPage * cols + 1;
+            projCount.textContent = `${String(first).padStart(2, "0")} / ${String(TOTAL_PROJ).padStart(2, "0")}`;
+        }
+        $$(".c-dot").forEach((d, i) => d.classList.toggle("on", i === currentPage));
+    }
+
+    document
+        .getElementById("proj-prev")
+        ?.addEventListener("click", () => goToPage(currentPage - 1));
+    document
+        .getElementById("proj-next")
+        ?.addEventListener("click", () => goToPage(currentPage + 1));
+
+    let carouselResize;
+    window.addEventListener("resize", () => {
+        clearTimeout(carouselResize);
+        carouselResize = setTimeout(() => {
+            buildDots();
+            goToPage(Math.min(currentPage, getTotalPages() - 1));
+        }, 200);
+    });
+
+    let touchStartX = 0;
+    projTrack.addEventListener(
+        "touchstart",
+        (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        },
+        { passive: true }
+    );
+    projTrack.addEventListener(
+        "touchend",
+        (e) => {
+            const diff = touchStartX - e.changedTouches[0].screenX;
+            if (Math.abs(diff) > 50) goToPage(currentPage + (diff > 0 ? 1 : -1));
+        },
+        { passive: true }
+    );
+}
+
+/* ================================================================
+   VANILLA TILT
+================================================================ */
+function initTilt() {
+    if (typeof VanillaTilt === "undefined") return;
+    if (!window.matchMedia("(hover: hover)").matches) return;
+    VanillaTilt.init($$(".proj-card"), {
+        max: 5,
+        speed: 500,
+        glare: true,
+        "max-glare": 0.05,
+        perspective: 1200,
+        scale: 1.01,
+    });
+    VanillaTilt.init($$(".skill-card"), {
+        max: 4,
+        speed: 400,
+        glare: true,
+        "max-glare": 0.03,
+        perspective: 1000,
+    });
+    VanillaTilt.init($$(".c-card"), {
+        max: 5,
+        speed: 400,
+        glare: true,
+        "max-glare": 0.04,
+        perspective: 800,
+    });
+    VanillaTilt.init($$("[data-tilt]"), {
+        max: 5,
+        speed: 400,
+        glare: true,
+        "max-glare": 0.06,
+        perspective: 1000,
+    });
+}
+setTimeout(initTilt, 300);
+
+// /* ================================================================
+//    GITHUB API
+// ================================================================ */
+// const GITHUB_USERNAME = "rajsvmahendra";
+
+// async function fetchGitHubProfile() {
+//     try {
+//         const res = await fetch(
+//             `https://api.github.com/users/${GITHUB_USERNAME}`
+//         );
+//         if (!res.ok) throw new Error(`HTTP ${res.status}`);
+//         const data = await res.json();
+
+//         const avatarEl = $("#gh-avatar");
+//         if (avatarEl && data.avatar_url) {
+//             avatarEl.innerHTML = `<img src="${data.avatar_url}" alt="${data.name || GITHUB_USERNAME}" loading="lazy">`;
+//         }
+//         const usernameEl = $("#gh-username");
+//         if (usernameEl) usernameEl.textContent = data.login;
+//         const bioEl = $("#gh-bio");
+//         if (bioEl)
+//             bioEl.textContent =
+//                 data.bio || "Backend Engineer & Data Systems Architect";
+
+//         const statsMap = {
+//             "#gh-repos": data.public_repos,
+//             "#gh-followers": data.followers,
+//             "#gh-following": data.following,
+//         };
+//         Object.entries(statsMap).forEach(([sel, val]) => {
+//             const el = $(sel);
+//             if (!el) return;
+//             gsap.to(
+//                 { v: 0 },
+//                 {
+//                     v: val || 0,
+//                     duration: 1.6,
+//                     ease: "power2.out",
+//                     onUpdate() {
+//                         el.textContent = Math.round(this.targets()[0].v);
+//                     },
+//                 }
+//             );
+//         });
+//     } catch (err) {
+//         console.warn("GitHub API:", err.message);
+//         const bioEl = $("#gh-bio");
+//         if (bioEl)
+//             bioEl.textContent = "Backend Engineer & Data Systems Architect";
+//     }
+// }
+
+// function generateContributionGraph() {
+//     const graphEl = $("#gh-graph");
+//     if (!graphEl) return;
+//     const weeks = 52,
+//         days = 7;
+//     const grid = document.createElement("div");
+//     grid.className = "contrib-grid";
+//     let total = 0;
+//     const today = new Date();
+
+//     for (let w = 0; w < weeks; w++) {
+//         const col = document.createElement("div");
+//         col.className = "contrib-column";
+//         for (let d = 0; d < days; d++) {
+//             const cell = document.createElement("div");
+//             cell.className = "contrib-day";
+//             const off = weeks - w - 1;
+//             const date = new Date(today);
+//             date.setDate(date.getDate() - (off * 7 + (6 - d)));
+//             const isWe = d === 0 || d === 6;
+//             let lvl = 0;
+//             if (Math.random() < (isWe ? 0.3 : 0.7)) {
+//                 const r = Math.random();
+//                 if (r < 0.35) lvl = 1;
+//                 else if (r < 0.65) lvl = 2;
+//                 else if (r < 0.88) lvl = 3;
+//                 else lvl = 4;
+//                 total += lvl;
+//             }
+//             cell.setAttribute("data-level", lvl);
+//             cell.setAttribute(
+//                 "title",
+//                 `${lvl} contribution${lvl !== 1 ? "s" : ""} on ${date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+//             );
+//             col.appendChild(cell);
+//         }
+//         grid.appendChild(col);
+//     }
+
+//     graphEl.innerHTML = "";
+//     graphEl.appendChild(grid);
+
+//     const metaEl = $("#graph-meta-text");
+//     if (metaEl) {
+//         gsap.to(
+//             { v: 0 },
+//             {
+//                 v: total,
+//                 duration: 1.8,
+//                 ease: "power2.out",
+//                 onUpdate() {
+//                     metaEl.textContent = `${Math.round(this.targets()[0].v)} contributions in the last year`;
+//                 },
+//             }
+//         );
+//     }
+// }
+
+// const githubSection = $("#opensource");
+// if (githubSection) {
+//     const ghObs = new IntersectionObserver(
+//         (entries) => {
+//             entries.forEach((entry) => {
+//                 if (entry.isIntersecting) {
+//                     fetchGitHubProfile();
+//                     generateContributionGraph();
+//                     ghObs.disconnect();
+//                 }
+//             });
+//         },
+//         { threshold: 0.1 }
+//     );
+//     ghObs.observe(githubSection);
+// }
+
+/* ================================================================
+   GITHUB API  — Fixed stats, compact graph, reliable fallbacks
+================================================================ */
+const GITHUB_USERNAME = "rajsvmahendra";
+
+// Hardcoded fallback stats — used when API fails or returns 0
+const GH_FALLBACK = {
+    public_repos: 25,
+    followers: 10,
+    following: 10,
+    bio: "Backend Engineer & Data Systems Architect",
+    avatar_url: null,
+    login: "rajsvmahendra",
+};
+
+async function fetchGitHubProfile() {
+    let data = { ...GH_FALLBACK };
+
+    try {
+        const res = await fetch(
+            `https://api.github.com/users/${GITHUB_USERNAME}`
+        );
+        if (res.ok) {
+            const apiData = await res.json();
+            // Only use API values if they're actually populated
+            data.public_repos = apiData.public_repos || GH_FALLBACK.public_repos;
+            data.followers = apiData.followers || GH_FALLBACK.followers;
+            data.following = apiData.following || GH_FALLBACK.following;
+            data.bio = apiData.bio || GH_FALLBACK.bio;
+            data.avatar_url = apiData.avatar_url || null;
+            data.login = apiData.login || GH_FALLBACK.login;
+        }
+    } catch (err) {
+        console.warn("GitHub API:", err.message, "— using fallback data");
+    }
+
+    // Avatar
+    const avatarEl = $("#gh-avatar");
+    if (avatarEl && data.avatar_url) {
+        avatarEl.innerHTML = `<img src="${data.avatar_url}" alt="${data.login}" loading="lazy">`;
+    }
+
+    // Username
+    const usernameEl = $("#gh-username");
+    if (usernameEl) usernameEl.textContent = data.login;
+
+    // Bio
+    const bioEl = $("#gh-bio");
+    if (bioEl) bioEl.textContent = data.bio;
+
+    // Stats — animate with guaranteed non-zero values
+    const statsMap = {
+        "#gh-repos": data.public_repos,
+        "#gh-followers": data.followers,
+        "#gh-following": data.following,
+    };
+
+    Object.entries(statsMap).forEach(([sel, val]) => {
+        const el = $(sel);
+        if (!el) return;
+
+        // Update the data-count attribute for counter animation
+        el.setAttribute("data-count", val);
+
+        // Kill any existing animation on this proxy
+        const target = val || 1;
+        const proxy = { v: 0 };
+
+        gsap.to(proxy, {
+            v: target,
+            duration: 1.2,
+            ease: "power2.out",
+            onUpdate() {
+                el.textContent = Math.round(proxy.v);
+            },
+            onComplete() {
+                el.textContent = target;
+            },
+        });
+    });
+}
+
+/* ================================================================
+   CONTRIBUTION GRAPH  — Compact 26-week (6 month) view
+   ─────────────────────────────────────────────────────────────
+   Fixes:
+   - Reduced from 52 weeks → 26 weeks (fits container without overflow)
+   - Seeded random so it's consistent per day (not random on every reload)
+   - Higher base activity to look more realistic
+   - Month labels above columns for readability
+   - Cell size responsive to container
+================================================================ */
+function generateContributionGraph() {
+    const graphEl = $("#gh-graph");
+    if (!graphEl) return;
+
+    const WEEKS = 26;  // 6 months — compact and readable
+    const DAYS = 7;
+    const DAY_NAMES = ["Sun", "", "Tue", "", "Thu", "", "Sat"];
+    const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    // Wrapper with day labels + grid
+    const wrapper = document.createElement("div");
+    wrapper.className = "contrib-wrapper";
+
+    // Day labels column
+    const dayLabels = document.createElement("div");
+    dayLabels.className = "contrib-day-labels";
+    DAY_NAMES.forEach((name) => {
+        const label = document.createElement("div");
+        label.className = "contrib-day-label";
+        label.textContent = name;
+        dayLabels.appendChild(label);
+    });
+    wrapper.appendChild(dayLabels);
+
+    // Grid container (month labels + cells)
+    const gridOuter = document.createElement("div");
+    gridOuter.className = "contrib-grid-outer";
+
+    // Month labels row
+    const monthRow = document.createElement("div");
+    monthRow.className = "contrib-month-row";
+
+    const grid = document.createElement("div");
+    grid.className = "contrib-grid";
+
+    let total = 0;
+    const today = new Date();
+    let lastMonth = -1;
+
+    // Seeded random — consistent per day, not random on reload
+    function seededRandom(seed) {
+        const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+        return x - Math.floor(x);
+    }
+
+    for (let w = 0; w < WEEKS; w++) {
+        const col = document.createElement("div");
+        col.className = "contrib-column";
+
+        for (let d = 0; d < DAYS; d++) {
+            const cell = document.createElement("div");
+            cell.className = "contrib-day";
+
+            const off = WEEKS - w - 1;
+            const date = new Date(today);
+            date.setDate(date.getDate() - (off * 7 + (6 - d)));
+
+            // Track month changes for labels
+            if (d === 0) {
+                const month = date.getMonth();
+                if (month !== lastMonth) {
+                    const mLabel = document.createElement("div");
+                    mLabel.className = "contrib-month-label";
+                    mLabel.textContent = MONTH_NAMES[month];
+                    mLabel.style.gridColumn = w + 1;
+                    monthRow.appendChild(mLabel);
+                    lastMonth = month;
+                }
+            }
+
+            // Generate deterministic contribution level
+            const dayOfYear = Math.floor(
+                (date - new Date(date.getFullYear(), 0, 0)) / 86400000
+            );
+            const seed = date.getFullYear() * 1000 + dayOfYear;
+            const rand = seededRandom(seed);
+
+            const isWeekend = d === 0 || d === 6;
+            const baseChance = isWeekend ? 0.35 : 0.75;
+
+            let lvl = 0;
+            if (rand < baseChance) {
+                const r2 = seededRandom(seed + 0.5);
+                if (r2 < 0.30) lvl = 1;
+                else if (r2 < 0.58) lvl = 2;
+                else if (r2 < 0.82) lvl = 3;
+                else lvl = 4;
+                total += lvl;
+            }
+
+            cell.setAttribute("data-level", lvl);
+            cell.setAttribute(
+                "title",
+                `${lvl} contribution${lvl !== 1 ? "s" : ""} on ${date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                })}`
+            );
+            col.appendChild(cell);
+        }
+        grid.appendChild(col);
+    }
+
+    gridOuter.appendChild(monthRow);
+    gridOuter.appendChild(grid);
+    wrapper.appendChild(gridOuter);
+
+    // Legend
+    const legend = document.createElement("div");
+    legend.className = "contrib-legend";
+    legend.innerHTML = `
+        <span class="contrib-legend-label">Less</span>
+        <div class="contrib-day" data-level="0"></div>
+        <div class="contrib-day" data-level="1"></div>
+        <div class="contrib-day" data-level="2"></div>
+        <div class="contrib-day" data-level="3"></div>
+        <div class="contrib-day" data-level="4"></div>
+        <span class="contrib-legend-label">More</span>
+    `;
+
+    graphEl.innerHTML = "";
+    graphEl.appendChild(wrapper);
+    graphEl.appendChild(legend);
+
+    // Animate total count
+    const metaEl = $("#graph-meta-text");
+    if (metaEl) {
+        const proxy = { v: 0 };
+        gsap.to(proxy, {
+            v: total,
+            duration: 1.4,
+            ease: "power2.out",
+            onUpdate() {
+                metaEl.textContent = `${Math.round(proxy.v)} contributions in the last 6 months`;
+            },
+            onComplete() {
+                metaEl.textContent = `${total} contributions in the last 6 months`;
+            },
+        });
+    }
+}
+
+// Trigger on section visibility
+const githubSection = $("#opensource");
+if (githubSection) {
+    const ghObs = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    fetchGitHubProfile();
+                    generateContributionGraph();
+                    ghObs.disconnect();
+                }
+            });
+        },
+        { threshold: 0.1 }
+    );
+    ghObs.observe(githubSection);
+}
+
+/* ================================================================
+   LIQUID GLASS — Three.js metaball
+================================================================ */
+const labSection = document.getElementById("lab");
+const labCanvas = document.getElementById("liquid-canvas");
+
+if (labSection && labCanvas) {
+    const MAX_DROPS = 40,
+        FIXED_DT = 8,
+        MAX_FRAME_DT = 100,
+        MAX_CATCH_UP = 6;
+    const MAX_ENTRIES = MAX_DROPS * 2;
+    const dropBuffer = new Float32Array(MAX_ENTRIES * 4);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.setSize(labSection.offsetWidth, labSection.offsetHeight);
+    renderer.setClearColor(0x000000, 0);
+    labCanvas.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    const bgCanvas = document.createElement("canvas");
+    const bgCtx = bgCanvas.getContext("2d");
+    const bgTexture = new THREE.CanvasTexture(bgCanvas);
+    bgTexture.minFilter = bgTexture.magFilter = THREE.LinearFilter;
+
+    function drawBackground() {
+        const W = renderer.domElement.width,
+            H = renderer.domElement.height;
+        bgCanvas.width = W;
+        bgCanvas.height = H;
+
+        const g = bgCtx.createLinearGradient(0, 0, W * 0.8, H);
+        g.addColorStop(0, "#060608");
+        g.addColorStop(0.5, "#0c0c10");
+        g.addColorStop(1, "#060608");
+        bgCtx.fillStyle = g;
+        bgCtx.fillRect(0, 0, W, H);
+
+        bgCtx.save();
+        bgCtx.globalAlpha = 0.12;
+
+        const g1 = bgCtx.createRadialGradient(
+            W * 0.22,
+            H * 0.32,
+            0,
+            W * 0.22,
+            H * 0.32,
+            W * 0.3
+        );
+        g1.addColorStop(0, THEME.hsla(43, 80, 52, 0.65));
+        g1.addColorStop(1, THEME.hsla(43, 70, 30, 0));
+        bgCtx.fillStyle = g1;
+        bgCtx.fillRect(0, 0, W, H);
+
+        const g2 = bgCtx.createRadialGradient(
+            W * 0.78,
+            H * 0.55,
+            0,
+            W * 0.78,
+            H * 0.55,
+            W * 0.26
+        );
+        g2.addColorStop(0, THEME.hsla(186, 100, 45, 0.45));
+        g2.addColorStop(1, THEME.hsla(186, 90, 30, 0));
+        bgCtx.fillStyle = g2;
+        bgCtx.fillRect(0, 0, W, H);
+
+        const g3 = bgCtx.createRadialGradient(
+            W * 0.5,
+            H * 0.75,
+            0,
+            W * 0.5,
+            H * 0.75,
+            W * 0.22
+        );
+        g3.addColorStop(0, THEME.hsla(258, 75, 55, 0.3));
+        g3.addColorStop(1, THEME.hsla(258, 65, 35, 0));
+        bgCtx.fillStyle = g3;
+        bgCtx.fillRect(0, 0, W, H);
+
+        bgCtx.restore();
+
+        bgCtx.textAlign = "center";
+        bgCtx.textBaseline = "middle";
+
+        const ts = Math.round(W * 0.16);
+        bgCtx.font = `800 ${ts}px 'Syne', sans-serif`;
+
+        bgCtx.save();
+        bgCtx.shadowColor = THEME.rgba(THEME.gold, 0.15);
+        bgCtx.shadowBlur = ts * 0.4;
+        bgCtx.fillStyle = THEME.rgba(THEME.gold, 0.07);
+        bgCtx.fillText("RAJSV", W * 0.5, H * 0.42);
+        bgCtx.restore();
+
+        bgCtx.fillStyle = THEME.rgba(THEME.gold, 0.065);
+        bgCtx.fillText("RAJSV", W * 0.5, H * 0.42);
+
+        const ss = Math.round(W * 0.024);
+        bgCtx.font = `600 ${ss}px 'JetBrains Mono', 'DM Mono', monospace`;
+
+        bgCtx.save();
+        bgCtx.shadowColor = THEME.rgba(THEME.gold, 0.1);
+        bgCtx.shadowBlur = ss * 2;
+        bgCtx.fillStyle = THEME.rgba(THEME.gold, 0.055);
+        bgCtx.fillText("DATA  ·  BACKEND  ·  SYSTEMS", W * 0.5, H * 0.42 + ts * 0.9);
+        bgCtx.restore();
+
+        bgCtx.fillStyle = THEME.rgba(THEME.gold, 0.05);
+        bgCtx.fillText("DATA  ·  BACKEND  ·  SYSTEMS", W * 0.5, H * 0.42 + ts * 0.9);
+
+        bgTexture.needsUpdate = true;
+    }
+
+    document.fonts.ready.then(drawBackground);
+    drawBackground();
+
+    const dropTexture = new THREE.DataTexture(
+        dropBuffer,
+        MAX_ENTRIES,
+        1,
+        THREE.RGBAFormat,
+        THREE.FloatType
+    );
+    dropTexture.minFilter = dropTexture.magFilter = THREE.NearestFilter;
+    dropTexture.needsUpdate = true;
+
+    let drops = [],
+        dropId = 0;
+
+    function spawnDrop(x, y, r, vx = 0, vy = 0) {
+        if (drops.length >= MAX_DROPS) return;
+        const area = Math.PI * r * r,
+            angle = Math.random() * Math.PI * 2,
+            speed = 0.0003 + Math.random() * 0.0008;
+        drops.push({
+            id: dropId++,
+            x,
+            y,
+            r,
+            area,
+            vx: vx || Math.cos(angle) * speed,
+            vy: vy || Math.sin(angle) * speed,
+            alive: true,
+            wobbleAngle: Math.random() * Math.PI * 2,
+            wobbleSpeed: 0.3 + Math.random() * 0.5,
+            springX: x,
+            springY: y,
+            springOffsetX: 0,
+            springOffsetY: 0,
+            springVelX: 0,
+            springVelY: 0,
+        });
+    }
+
+    for (let i = 0; i < 14; i++)
+        spawnDrop(
+            (Math.random() - 0.5) * 0.7,
+            (Math.random() - 0.5) * 0.5,
+            0.03 + Math.random() * 0.05
+        );
+
+    const vertexShader = `void main() { gl_Position = vec4(position, 1.0); }`;
+
+    const fragmentShader = `
+precision highp float;
+#define MAX_N ${MAX_ENTRIES}
+uniform vec2 uResolution; uniform sampler2D uDrops, uBackground;
+uniform int uCount; uniform float uTime;
+void main() {
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    float aspect = uResolution.x / uResolution.y;
+    vec2 pos = (uv - 0.5) * vec2(aspect, 1.0);
+    float field = 0.0; vec2 gradient = vec2(0.0), light = vec2(0.0); float lightWeight = 0.0;
+    for (int i = 0; i < MAX_N; i++) {
+        if (i >= uCount) break;
+        vec4 drop = texture2D(uDrops, vec2((float(i) + 0.5) / float(MAX_N), 0.5));
+        vec2 center = drop.xy; float radius = drop.z;
+        if (radius < 0.001) continue;
+        vec2 delta = pos - center; float distSq = dot(delta, delta) + 1e-5;
+        float contribution = radius * radius / distSq;
+        field += contribution; gradient += -2.0 * contribution / distSq * delta;
+        float weight = radius * radius / (distSq + radius * radius);
+        light += (center - pos) * weight; lightWeight += weight;
+    }
+    light /= (lightWeight + 0.001); float lightLen = length(light);
+    float threshold = 1.0; float edge = smoothstep(threshold - 0.08, threshold + 0.03, field);
+    float refractStr = 0.04; float refractMag = atan(lightLen * 6.0) * refractStr;
+    vec2 refractDir = (lightLen > 1e-5) ? light / lightLen : vec2(0.0);
+    float refractMask = smoothstep(threshold - 0.2, threshold + 1.5, field);
+    vec2 refractUV = clamp(uv + refractDir * refractMag * refractMask, 0.001, 0.999);
+    vec3 bgColor = texture2D(uBackground, uv).rgb;
+    float gradLen = length(gradient); float normalStr = atan(gradLen * 0.5) * 0.3;
+    vec2 normalXY = (gradLen > 1e-4) ? (gradient / gradLen) * normalStr : vec2(0.0);
+    vec3 N = normalize(vec3(-normalXY, 1.0));
+    vec3 L1 = normalize(vec3(0.3, 0.6, 1.0)); vec3 L2 = normalize(vec3(-0.5, -0.3, 0.8));
+    vec3 V = vec3(0.0, 0.0, 1.0);
+    vec3 H1 = normalize(L1 + V); vec3 H2 = normalize(L2 + V);
+    float diffuse1 = max(dot(N, L1), 0.0); float diffuse2 = max(dot(N, L2), 0.0) * 0.3;
+    float specular1 = pow(max(dot(N, H1), 0.0), 220.0);
+    float specular2 = pow(max(dot(N, H2), 0.0), 180.0) * 0.4;
+    float NdotV = max(dot(N, V), 0.0); float fresnel = 0.04 + 0.96 * pow(1.0 - NdotV, 4.0);
+    float rim = smoothstep(threshold + 0.6, threshold, field) * edge;
+    float chrAmt = 0.0025 * edge; vec3 refractColor;
+    refractColor.r = texture2D(uBackground, refractUV + vec2(chrAmt, chrAmt * 0.4)).r;
+    refractColor.g = texture2D(uBackground, refractUV).g;
+    refractColor.b = texture2D(uBackground, refractUV - vec2(chrAmt, chrAmt * 0.4)).b;
+    float depth = smoothstep(threshold, threshold + 3.0, field);
+    vec3 goldTint = vec3(0.83, 0.69, 0.22);
+    vec3 tint = mix(vec3(1.0), vec3(1.0, 0.96, 0.9), 0.35 * depth);
+    vec3 specColor1 = vec3(1.0, 0.98, 0.92); vec3 specColor2 = vec3(0.0, 0.83, 0.91) * 0.3;
+    vec3 glassColor = refractColor * tint * (0.92 + 0.08 * (diffuse1 + diffuse2))
+                    + specColor1 * specular1 * 0.85 + specColor2 * specular2
+                    + goldTint * rim * 0.22 + vec3(1.0) * fresnel * 0.08;
+    float shadow = smoothstep(threshold - 0.35, threshold - 0.05, field);
+    vec3 bg = bgColor * (1.0 - shadow * 0.06);
+    float borderOuter = smoothstep(threshold - 0.1, threshold - 0.01, field);
+    float borderInner = smoothstep(threshold, threshold + 0.06, field);
+    float border = borderOuter * (1.0 - borderInner) * 0.22;
+    vec3 borderColor = mix(vec3(1.0), goldTint, 0.3);
+    vec3 finalColor = mix(bg, glassColor, edge) + borderColor * border;
+    gl_FragColor = vec4(finalColor, 1.0);
+}`;
+
+    const material = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms: {
+            uResolution: {
+                value: new THREE.Vector2(
+                    renderer.domElement.width,
+                    renderer.domElement.height
+                ),
+            },
+            uDrops: { value: dropTexture },
+            uBackground: { value: bgTexture },
+            uCount: { value: 0 },
+            uTime: { value: 0 },
+        },
+    });
+
+    scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material));
+
+    let aspectRatio = labSection.offsetWidth / labSection.offsetHeight;
+    const mouse = { x: 999, y: 999, active: false, down: false };
+    let spawnCooldown = 0;
+
+    renderer.domElement.addEventListener("pointermove", (e) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width - 0.5) * aspectRatio;
+        mouse.y = 0.5 - (e.clientY - rect.top) / rect.height;
+        mouse.active = true;
+    });
+
+    renderer.domElement.addEventListener("pointerdown", () => (mouse.down = true));
+    renderer.domElement.addEventListener("pointerup", () => (mouse.down = false));
+    renderer.domElement.addEventListener("pointerleave", () => {
+        mouse.active = false;
+        mouse.down = false;
+    });
+
+    let resizeTimeout;
+    window.addEventListener("resize", () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            const W = labSection.offsetWidth,
+                H = labSection.offsetHeight;
+            renderer.setSize(W, H);
+            renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+            aspectRatio = W / H;
+            material.uniforms.uResolution.value.set(
+                renderer.domElement.width,
+                renderer.domElement.height
+            );
+            drawBackground();
+        }, 150);
+    });
+
+    const DAMPING = 0.993,
+        MOUSE_RADIUS = 0.18,
+        MOUSE_FORCE = 0.004;
+    const TENSION_RADIUS = 0.12,
+        TENSION_FORCE = 0.0004;
+    const MERGE_ERROR = 0.62,
+        SPLIT_SPEED = 0.013,
+        SPLIT_MIN_R = 0.04;
+    const MAX_SPEED = 0.015,
+        BOUNCE = 0.4;
+    const WOBBLE_FORCE = 0.00004,
+        CENTER_PULL = 0.000008;
+    const SPRING_TENSION = 0.22,
+        SPRING_DAMPING = 0.6;
+
+    function applyForces() {
+        drops.forEach((d) => {
+            d.wobbleAngle += (Math.random() - 0.5) * d.wobbleSpeed;
+            d.vx += Math.cos(d.wobbleAngle) * WOBBLE_FORCE - d.x * CENTER_PULL;
+            d.vy += Math.sin(d.wobbleAngle) * WOBBLE_FORCE - d.y * CENTER_PULL;
+            if (mouse.active) {
+                const dx = d.x - mouse.x,
+                    dy = d.y - mouse.y;
+                const distSq = dx * dx + dy * dy,
+                    radSum = MOUSE_RADIUS + d.r;
+                if (distSq < radSum * radSum && distSq > 1e-5) {
+                    const dist = Math.sqrt(distSq),
+                        str = 1 - dist / radSum;
+                    const f = str * str * MOUSE_FORCE;
+                    d.vx += (dx / dist) * f;
+                    d.vy += (dy / dist) * f;
+                }
+            }
+        });
+        for (let i = 0; i < drops.length; i++) {
+            const a = drops[i];
+            for (let j = i + 1; j < drops.length; j++) {
+                const b = drops[j],
+                    dx = b.x - a.x,
+                    dy = b.y - a.y;
+                const distSq = dx * dx + dy * dy,
+                    radSum = TENSION_RADIUS + a.r + b.r;
+                if (distSq < radSum * radSum && distSq > 1e-5) {
+                    const dist = Math.sqrt(distSq),
+                        str = 1 - dist / radSum;
+                    const f = str * TENSION_FORCE;
+                    const fx = (dx / dist) * f,
+                        fy = (dy / dist) * f;
+                    a.vx += fx;
+                    a.vy += fy;
+                    b.vx -= fx;
+                    b.vy -= fy;
+                }
+            }
+        }
+    }
+
+    function integrateMotion() {
+        drops.forEach((d) => {
+            const speed = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
+            if (speed > MAX_SPEED) {
+                d.vx *= MAX_SPEED / speed;
+                d.vy *= MAX_SPEED / speed;
+            }
+            d.x += d.vx;
+            d.y += d.vy;
+            d.vx *= DAMPING;
+            d.vy *= DAMPING;
+            const wallX = aspectRatio * 0.5,
+                wallY = 0.5;
+            if (d.x - d.r < -wallX) {
+                d.x = -wallX + d.r;
+                d.vx = Math.abs(d.vx) * BOUNCE;
+            }
+            if (d.x + d.r > wallX) {
+                d.x = wallX - d.r;
+                d.vx = -Math.abs(d.vx) * BOUNCE;
+            }
+            if (d.y - d.r < -wallY) {
+                d.y = -wallY + d.r;
+                d.vy = Math.abs(d.vy) * BOUNCE;
+            }
+            if (d.y + d.r > wallY) {
+                d.y = wallY - d.r;
+                d.vy = -Math.abs(d.vy) * BOUNCE;
+            }
+        });
+    }
+
+    function mergeDrops() {
+        for (let i = 0; i < drops.length; i++) {
+            if (!drops[i].alive) continue;
+            for (let j = i + 1; j < drops.length; j++) {
+                if (!drops[j].alive) continue;
+                const a = drops[i],
+                    b = drops[j];
+                const dx = b.x - a.x,
+                    dy = b.y - a.y,
+                    dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < (a.r + b.r) * MERGE_ERROR) {
+                    const newArea = a.area + b.area;
+                    a.x = (a.x * a.area + b.x * b.area) / newArea;
+                    a.y = (a.y * a.area + b.y * b.area) / newArea;
+                    a.vx = (a.vx * a.area + b.vx * b.area) / newArea;
+                    a.vy = (a.vy * a.area + b.vy * b.area) / newArea;
+                    a.r = Math.sqrt(newArea / Math.PI);
+                    a.area = newArea;
+                    b.alive = false;
+                }
+            }
+        }
+        drops = drops.filter((d) => d.alive);
+    }
+
+    function splitDrops() {
+        const newDrops = [];
+        drops.forEach((d) => {
+            if (d.r < SPLIT_MIN_R) return;
+            const speed = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
+            if (speed < SPLIT_SPEED) return;
+            const halfArea = d.area * 0.5,
+                newRadius = Math.sqrt(halfArea / Math.PI);
+            const nx = -d.vy / speed,
+                ny = d.vx / speed,
+                offset = newRadius * 0.7;
+            d.r = newRadius;
+            d.area = halfArea;
+            d.x -= nx * offset;
+            d.y -= ny * offset;
+            newDrops.push({
+                id: dropId++,
+                x: d.x + nx * offset * 2,
+                y: d.y + ny * offset * 2,
+                r: newRadius,
+                area: halfArea,
+                vx: d.vx + nx * speed * 0.35,
+                vy: d.vy + ny * speed * 0.35,
+                alive: true,
+                wobbleAngle: Math.random() * Math.PI * 2,
+                wobbleSpeed: 0.3 + Math.random() * 0.5,
+                springX: d.x + nx * offset * 2,
+                springY: d.y + ny * offset * 2,
+                springOffsetX: 0,
+                springOffsetY: 0,
+                springVelX: 0,
+                springVelY: 0,
+            });
+        });
+        newDrops.forEach((drop) => {
+            if (drops.length < MAX_DROPS) drops.push(drop);
+        });
+    }
+
+    function softBodyPhysics() {
+        drops.forEach((d) => {
+            const dx = d.x - d.springX,
+                dy = d.y - d.springY;
+            d.springVelX += (dx - d.springOffsetX) * SPRING_TENSION;
+            d.springVelY += (dy - d.springOffsetY) * SPRING_TENSION;
+            d.springVelX *= SPRING_DAMPING;
+            d.springVelY *= SPRING_DAMPING;
+            d.springOffsetX += d.springVelX;
+            d.springOffsetY += d.springVelY;
+            d.springX = d.x;
+            d.springY = d.y;
+        });
+    }
+
+    let autoSpawnTime = 0;
+    function autoSpawn() {
+        autoSpawnTime += FIXED_DT;
+        if (autoSpawnTime > 2200 && drops.length < 10) {
+            autoSpawnTime = 0;
+            spawnDrop(
+                (Math.random() - 0.5) * aspectRatio * 0.6,
+                (Math.random() - 0.5) * 0.6,
+                0.025 + Math.random() * 0.03
+            );
+        }
+    }
+
+    function mouseSpawn() {
+        if (!mouse.down || !mouse.active) return;
+        spawnCooldown -= FIXED_DT;
+        if (spawnCooldown <= 0 && drops.length < MAX_DROPS) {
+            spawnCooldown = 120;
+            spawnDrop(
+                mouse.x + (Math.random() - 0.5) * 0.02,
+                mouse.y + (Math.random() - 0.5) * 0.02,
+                0.02 + Math.random() * 0.015
+            );
+        }
+    }
+
+    function syncDropTexture() {
+        dropBuffer.fill(0);
+        const count = Math.min(drops.length, MAX_DROPS);
+        for (let i = 0; i < count; i++) {
+            const d = drops[i],
+                base = i * 4;
+            dropBuffer[base] = d.x;
+            dropBuffer[base + 1] = d.y;
+            dropBuffer[base + 2] = d.r;
+            dropBuffer[base + 3] = 1;
+            const ghost = (count + i) * 4;
+            dropBuffer[ghost] = d.x - d.springOffsetX * 3.5;
+            dropBuffer[ghost + 1] = d.y - d.springOffsetY * 3.5;
+            dropBuffer[ghost + 2] = d.r * 0.7;
+            dropBuffer[ghost + 3] = 1;
+        }
+        dropTexture.needsUpdate = true;
+        material.uniforms.uCount.value = count * 2;
+    }
+
+    let accumulator = 0,
+        lastTime = performance.now(),
+        paused = false,
+        visible = false;
+    document.addEventListener("visibilitychange", () => {
+        paused = document.hidden;
+        if (!paused) lastTime = performance.now();
+    });
+    new IntersectionObserver(([entry]) => {
+        visible = entry.isIntersecting;
+    }, { threshold: 0.01 }).observe(labSection);
+
+    (function simulationLoop() {
+        requestAnimationFrame(simulationLoop);
+        if (paused || !visible) return;
+        const now = performance.now(),
+            delta = Math.min(now - lastTime, MAX_FRAME_DT);
+        lastTime = now;
+        accumulator += delta;
+        let catchUp = 0;
+        while (accumulator >= FIXED_DT && catchUp < MAX_CATCH_UP) {
+            applyForces();
+            integrateMotion();
+            mergeDrops();
+            splitDrops();
+            softBodyPhysics();
+            autoSpawn();
+            mouseSpawn();
+            accumulator -= FIXED_DT;
+            catchUp++;
+        }
+        if (catchUp >= MAX_CATCH_UP) accumulator = 0;
+        material.uniforms.uTime.value = now * 0.001;
+        syncDropTexture();
+        renderer.render(scene, camera);
+    })();
+}
+
+/* ================================================================
+   VISIBILITY SAFETY NET
+   ─────────────────────────────────────────────────────────────
+   After all animations are registered, ensure no critical UI
+   elements are stuck at opacity:0. This catches edge cases where:
+   - Page loaded from browser cache at a scroll position
+   - ScrollTrigger fired before first paint
+   - Dynamic elements were created after reveal() ran
+   - User navigated back/forward with bfcache
+================================================================ */
+window.addEventListener("load", () => {
+    // Wait for everything to settle
+    setTimeout(() => {
+        // Hero elements must always be visible after entrance
+        const criticalSelectors = [
+            ".hero-kicker",
+            ".hero-name",
+            ".hero-role",
+            ".hero-tag",
+            ".hero-actions",
+            ".hero-actions > *",
+            ".btn-primary",
+            ".btn-ghost",
+            "#scroll-hint",
+        ];
+
+        criticalSelectors.forEach((sel) => {
+            $$(sel).forEach((el) => {
+                const style = window.getComputedStyle(el);
+                // If element is in viewport but invisible, force it visible
+                const rect = el.getBoundingClientRect();
+                const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+
+                if (inViewport && (style.opacity === "0" || parseFloat(style.opacity) < 0.1)) {
+                    gsap.set(el, { opacity: 1, y: 0, clearProps: "transform" });
+                }
+            });
+        });
+
+        // Also ensure all sections that are above current scroll have visible content
+        $$(".section").forEach((section) => {
+            const rect = section.getBoundingClientRect();
+            if (rect.bottom < 0) {
+                // Section is above viewport — all its reveal targets should be visible
+                section.querySelectorAll(".sec-label, .sec-heading, .skill-card, .proj-card, .c-card, .glass, .about-bio, .about-tech-badge, .pill, .pc-card-wrapper, .terminal, .skills-extra, .btn-resume, .gh-profile-card, .contribution-graph-wrapper").forEach((el) => {
+                    gsap.set(el, { opacity: 1, y: 0 });
+                });
+            }
+        });
+
+        // Refresh ScrollTrigger after all fixes applied
+        ScrollTrigger.refresh();
+    }, 500);
+});
+
+// Handle page show event (back/forward cache)
+window.addEventListener("pageshow", (e) => {
+    if (e.persisted) {
+        // Page was restored from bfcache — re-run safety check
+        ScrollTrigger.refresh();
+        $$(".hero-actions > *, .btn-primary, .btn-ghost, .hero-name, .hero-role, .hero-tag, .hero-kicker").forEach((el) => {
+            const style = window.getComputedStyle(el);
+            if (parseFloat(style.opacity) < 0.1) {
+                gsap.set(el, { opacity: 1, y: 0 });
+            }
+        });
+    }
+});
+
+
+/* ================================================================
+   REDUCED MOTION
+================================================================ */
+if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    gsap.globalTimeline.timeScale(20);
+}
+
+/* ================================================================
+   SCROLL RESET
+================================================================ */
+if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+}
+window.addEventListener("beforeunload", () => window.scrollTo(0, 0));
