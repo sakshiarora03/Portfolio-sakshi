@@ -3231,3 +3231,559 @@ button {
         padding: 1.4rem 1.2rem;
     }
 }
+
+/* ============================================================
+   ACHIEVEMENTS SECTION
+============================================================ */
+.achieve-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: center;
+}
+
+/* ═══════ IMAGE GALLERY — Floating Stack (Landscape Images) ═══════ */
+.achieve-gallery {
+    position: relative;
+    height: 480px;
+    perspective: 1200px;
+}
+
+.achieve-img-stack {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.achieve-img {
+    position: absolute;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+    border: 2px solid rgba(212, 175, 55, 0.15);
+    transition: all 0.6s var(--ease-out);
+    cursor: pointer;
+    background: var(--grey-900);
+}
+
+.achieve-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transition: transform 0.6s var(--ease-out), opacity 0.4s;
+    opacity: 0;
+}
+
+.achieve-img img.loaded {
+    opacity: 1;
+}
+
+.achieve-img::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(145deg,
+            rgba(212, 175, 55, 0.08) 0%,
+            transparent 40%,
+            rgba(0, 0, 0, 0.4) 100%);
+    z-index: 1;
+    pointer-events: none;
+    transition: opacity 0.4s;
+}
+
+.achieve-img::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    z-index: 2;
+}
+
+.achieve-img:hover::before {
+    opacity: 0.6;
+}
+
+.achieve-img:hover img {
+    transform: scale(1.08);
+}
+
+/* ═══════ MAIN IMAGE — Largest, center position ═══════ */
+.achieve-img-main {
+    width: 360px;
+    height: 240px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-2deg);
+    z-index: 3;
+    border-color: rgba(212, 175, 55, 0.25);
+}
+
+.achieve-img-main:hover {
+    z-index: 10;
+    transform: translate(-50%, -50%) rotate(0deg) scale(1.04);
+    border-color: rgba(212, 175, 55, 0.5);
+    box-shadow:
+        var(--shadow-xl),
+        0 0 80px rgba(212, 175, 55, 0.2),
+        0 0 40px rgba(212, 175, 55, 0.1);
+}
+
+/* ═══════ SECONDARY IMAGE — Top right ═══════ */
+.achieve-img-secondary {
+    width: 240px;
+    height: 160px;
+    right: 0;
+    top: 20px;
+    transform: rotate(5deg) translateZ(20px);
+    z-index: 2;
+    border-color: rgba(0, 212, 232, 0.2);
+}
+
+.achieve-img-secondary:hover {
+    z-index: 10;
+    transform: rotate(2deg) translateZ(40px) scale(1.08) translateY(-10px);
+    border-color: rgba(0, 212, 232, 0.5);
+    box-shadow:
+        var(--shadow-xl),
+        0 0 60px rgba(0, 212, 232, 0.15),
+        0 0 30px rgba(0, 212, 232, 0.08);
+}
+
+/* ═══════ TERTIARY IMAGE — Bottom left ═══════ */
+.achieve-img-tertiary {
+    width: 220px;
+    height: 150px;
+    left: 0;
+    bottom: 30px;
+    transform: rotate(-6deg) translateZ(10px);
+    z-index: 1;
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.achieve-img-tertiary:hover {
+    z-index: 10;
+    transform: rotate(-2deg) translateZ(30px) scale(1.1) translateY(-10px);
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow:
+        var(--shadow-xl),
+        0 0 60px rgba(139, 92, 246, 0.15),
+        0 0 30px rgba(139, 92, 246, 0.08);
+}
+
+/* ═══════ SHINE EFFECT ═══════ */
+.achieve-img-shine {
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 80%;
+    height: 100%;
+    background: linear-gradient(100deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.05) 40%,
+            rgba(255, 255, 255, 0.15) 50%,
+            rgba(255, 255, 255, 0.05) 60%,
+            transparent 100%);
+    transform: skewX(-25deg);
+    z-index: 4;
+    pointer-events: none;
+    transition: left 0.7s var(--ease-out);
+}
+
+.achieve-img:hover .achieve-img-shine {
+    left: 120%;
+}
+
+/* ═══════ DECORATIVE ELEMENTS ═══════ */
+.achieve-decor {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    animation: floatDecor 6s ease-in-out infinite;
+}
+
+.achieve-decor-1 {
+    width: 100px;
+    height: 100px;
+    top: 5%;
+    left: 10%;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, transparent 70%);
+    animation-delay: 0s;
+}
+
+.achieve-decor-2 {
+    width: 140px;
+    height: 140px;
+    bottom: 0;
+    right: 5%;
+    background: radial-gradient(circle, rgba(0, 212, 232, 0.08) 0%, transparent 70%);
+    animation-delay: -2s;
+}
+
+.achieve-decor-3 {
+    width: 70px;
+    height: 70px;
+    top: 35%;
+    right: 0;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+    animation-delay: -4s;
+}
+
+@keyframes floatDecor {
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: translateY(-25px) scale(1.15);
+        opacity: 0.9;
+    }
+}
+
+/* ═══════ CONTENT SIDE ═══════ */
+.achieve-content {
+    position: relative;
+}
+
+.achieve-card {
+    padding: 2.5rem;
+    margin-top: 2rem;
+    background: var(--glass-fill-md);
+}
+
+/* Achievement Badge */
+.achieve-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 100px;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    margin-bottom: 1.5rem;
+}
+
+.achieve-badge svg {
+    width: 20px;
+    height: 20px;
+    color: var(--a1);
+    fill: rgba(212, 175, 55, 0.2);
+}
+
+.achieve-badge span {
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--a1);
+}
+
+/* Title */
+.achieve-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--t1);
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+/* Stats Row */
+.achieve-stats {
+    display: flex;
+    gap: 2.5rem;
+    padding: 1.5rem 0;
+    margin-bottom: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.achieve-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.achieve-stat-val {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: var(--grad-gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.achieve-stat-label {
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--grey-500);
+    font-weight: 500;
+}
+
+/* Description */
+.achieve-desc {
+    font-size: 1rem;
+    line-height: 1.85;
+    color: var(--t2);
+    margin-bottom: 1rem;
+}
+
+.achieve-desc strong {
+    color: var(--t1);
+    font-weight: 600;
+}
+
+.achieve-desc:last-of-type {
+    margin-bottom: 1.5rem;
+}
+
+/* Tags */
+.achieve-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1.8rem;
+}
+
+.achieve-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    background: rgba(212, 175, 55, 0.06);
+    border: 1px solid rgba(212, 175, 55, 0.12);
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: var(--a1);
+    font-weight: 500;
+    transition: all 0.3s var(--ease-out);
+}
+
+.achieve-tag svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.7;
+}
+
+.achieve-tag:hover {
+    background: rgba(212, 175, 55, 0.12);
+    border-color: rgba(212, 175, 55, 0.25);
+    transform: translateY(-2px);
+}
+
+/* Organization */
+.achieve-org {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.achieve-org-label {
+    font-family: var(--f-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--grey-500);
+    font-weight: 500;
+}
+
+.achieve-org-name {
+    font-family: var(--f-mono);
+    font-size: 0.85rem;
+    color: var(--t2);
+    font-weight: 600;
+}
+
+/* ============================================================
+   ACHIEVEMENTS RESPONSIVE
+============================================================ */
+@media (max-width: 1100px) {
+    .achieve-layout {
+        gap: 3rem;
+    }
+
+    .achieve-gallery {
+        height: 420px;
+    }
+
+    .achieve-img-main {
+        width: 320px;
+        height: 210px;
+    }
+
+    .achieve-img-secondary {
+        width: 200px;
+        height: 135px;
+    }
+
+    .achieve-img-tertiary {
+        width: 180px;
+        height: 120px;
+    }
+}
+
+@media (max-width: 900px) {
+    .achieve-layout {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+    }
+
+    .achieve-gallery {
+        height: 380px;
+        max-width: 500px;
+        margin: 0 auto;
+        order: -1;
+    }
+
+    .achieve-img-main {
+        width: 300px;
+        height: 200px;
+    }
+
+    .achieve-img-secondary {
+        width: 180px;
+        height: 120px;
+        right: 10px;
+        top: 10px;
+    }
+
+    .achieve-img-tertiary {
+        width: 160px;
+        height: 110px;
+        left: 10px;
+        bottom: 20px;
+    }
+
+    .achieve-content {
+        text-align: center;
+    }
+
+    .achieve-content .sec-label::before {
+        display: none;
+    }
+
+    .achieve-stats {
+        justify-content: center;
+    }
+
+    .achieve-tags {
+        justify-content: center;
+    }
+
+    .achieve-org {
+        align-items: center;
+    }
+}
+
+@media (max-width: 600px) {
+    .achieve-gallery {
+        height: 320px;
+    }
+
+    .achieve-img-main {
+        width: 260px;
+        height: 175px;
+    }
+
+    .achieve-img-secondary {
+        width: 150px;
+        height: 100px;
+        right: 5px;
+        top: 5px;
+    }
+
+    .achieve-img-tertiary {
+        width: 140px;
+        height: 95px;
+        left: 5px;
+        bottom: 15px;
+    }
+
+    .achieve-card {
+        padding: 1.8rem;
+    }
+
+    .achieve-title {
+        font-size: 1.5rem;
+    }
+
+    .achieve-stats {
+        gap: 1.5rem;
+    }
+
+    .achieve-stat-val {
+        font-size: 1.5rem;
+    }
+
+    .achieve-desc {
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .achieve-gallery {
+        height: 280px;
+    }
+
+    .achieve-img-main {
+        width: 220px;
+        height: 150px;
+    }
+
+    .achieve-img-secondary {
+        width: 130px;
+        height: 88px;
+        right: 0;
+        top: 0;
+        transform: rotate(4deg);
+    }
+
+    .achieve-img-tertiary {
+        width: 120px;
+        height: 82px;
+        left: 0;
+        bottom: 10px;
+        transform: rotate(-4deg);
+    }
+
+    .achieve-card {
+        padding: 1.4rem;
+    }
+
+    .achieve-badge {
+        padding: 0.5rem 1rem;
+    }
+
+    .achieve-badge span {
+        font-size: 0.7rem;
+    }
+
+    .achieve-stats {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .achieve-stat {
+        min-width: 70px;
+    }
+
+    .achieve-stat-val {
+        font-size: 1.3rem;
+    }
+}

@@ -791,6 +791,8 @@ reveal(".cert-card", { y: 28, stagger: 0.08 });
 reveal(".contribution-graph-wrapper", { y: 34 });
 
 
+
+
 /* ================================================================
    PROFILE CARD — 3‑D Tilt
 ================================================================ */
@@ -3003,5 +3005,223 @@ window.addEventListener("beforeunload", () => window.scrollTo(0, 0));
         renderer.render(scene, camera);
         // NO initial swing - card hangs still until user drags it
     }, 100);
+
+})();
+
+/* ================================================================
+   ACHIEVEMENTS SECTION — Image Load & Reveal Animations
+================================================================ */
+(function initAchievements() {
+    const achieveImages = document.querySelectorAll('.achieve-img img');
+    const achieveGallery = document.querySelector('.achieve-gallery');
+    const achieveDecors = document.querySelectorAll('.achieve-decor');
+
+    if (!achieveImages.length) return;
+
+    // ═══════════════════════════════════════════════════════════════
+    // IMAGE LOAD DETECTION — Add 'loaded' class when ready
+    // ═══════════════════════════════════════════════════════════════
+    achieveImages.forEach((img) => {
+        // If already loaded (cached)
+        if (img.complete && img.naturalHeight !== 0) {
+            img.classList.add('loaded');
+        } else {
+            // Wait for load
+            img.addEventListener('load', () => {
+                img.classList.add('loaded');
+            });
+            // Handle error - still show container
+            img.addEventListener('error', () => {
+                img.style.opacity = '0.3';
+                img.parentElement.style.background = 'linear-gradient(135deg, var(--grey-800), var(--grey-900))';
+            });
+        }
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // SCROLL-TRIGGERED ANIMATIONS
+    // ═══════════════════════════════════════════════════════════════
+    if (typeof ScrollTrigger !== 'undefined' && achieveGallery) {
+
+        // Main image - slides in from bottom
+        const mainImg = document.querySelector('.achieve-img-main');
+        if (mainImg) {
+            gsap.set(mainImg, { y: 80, opacity: 0, scale: 0.9 });
+
+            ScrollTrigger.create({
+                trigger: achieveGallery,
+                start: "top 85%",
+                once: true,
+                onEnter: () => {
+                    gsap.to(mainImg, {
+                        y: 0,
+                        opacity: 1,
+                        scale: 1,
+                        duration: 0.9,
+                        ease: "power3.out"
+                    });
+                }
+            });
+        }
+
+        // Secondary image - slides in from right
+        const secImg = document.querySelector('.achieve-img-secondary');
+        if (secImg) {
+            gsap.set(secImg, { x: 60, y: -30, opacity: 0, scale: 0.85, rotation: 10 });
+
+            ScrollTrigger.create({
+                trigger: achieveGallery,
+                start: "top 80%",
+                once: true,
+                onEnter: () => {
+                    gsap.to(secImg, {
+                        x: 0,
+                        y: 0,
+                        opacity: 1,
+                        scale: 1,
+                        rotation: 5,
+                        duration: 0.8,
+                        delay: 0.2,
+                        ease: "power3.out"
+                    });
+                }
+            });
+        }
+
+        // Tertiary image - slides in from left
+        const terImg = document.querySelector('.achieve-img-tertiary');
+        if (terImg) {
+            gsap.set(terImg, { x: -50, y: 30, opacity: 0, scale: 0.85, rotation: -10 });
+
+            ScrollTrigger.create({
+                trigger: achieveGallery,
+                start: "top 75%",
+                once: true,
+                onEnter: () => {
+                    gsap.to(terImg, {
+                        x: 0,
+                        y: 0,
+                        opacity: 1,
+                        scale: 1,
+                        rotation: -6,
+                        duration: 0.8,
+                        delay: 0.35,
+                        ease: "power3.out"
+                    });
+                }
+            });
+        }
+
+        // Decorative elements fade in
+        achieveDecors.forEach((decor, i) => {
+            gsap.set(decor, { opacity: 0, scale: 0.5 });
+
+            ScrollTrigger.create({
+                trigger: achieveGallery,
+                start: "top 70%",
+                once: true,
+                onEnter: () => {
+                    gsap.to(decor, {
+                        opacity: 0.6,
+                        scale: 1,
+                        duration: 1,
+                        delay: 0.5 + (i * 0.15),
+                        ease: "power2.out"
+                    });
+                }
+            });
+        });
+
+        // Achievement card
+        const achieveCard = document.querySelector('.achieve-card');
+        if (achieveCard) {
+            gsap.set(achieveCard, { y: 50, opacity: 0 });
+
+            ScrollTrigger.create({
+                trigger: achieveCard,
+                start: "top 90%",
+                once: true,
+                onEnter: () => {
+                    gsap.to(achieveCard, {
+                        y: 0,
+                        opacity: 1,
+                        duration: 0.8,
+                        ease: "power3.out"
+                    });
+                }
+            });
+        }
+
+        // Achievement stats counter animation
+        const statVals = document.querySelectorAll('.achieve-stat-val');
+        statVals.forEach((el) => {
+            const text = el.textContent;
+            const isNumber = /^\d+/.test(text);
+
+            if (isNumber) {
+                const num = parseInt(text);
+                const suffix = text.replace(/^\d+/, '');
+
+                ScrollTrigger.create({
+                    trigger: el,
+                    start: "top 90%",
+                    once: true,
+                    onEnter: () => {
+                        gsap.from({ val: 0 }, {
+                            val: num,
+                            duration: 1.5,
+                            ease: "power2.out",
+                            onUpdate: function () {
+                                el.textContent = Math.round(this.targets()[0].val) + suffix;
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PARALLAX FLOAT ON SCROLL (subtle movement)
+    // ═══════════════════════════════════════════════════════════════
+    if (typeof gsap !== 'undefined' && achieveGallery) {
+        const mainImg = document.querySelector('.achieve-img-main');
+        const secImg = document.querySelector('.achieve-img-secondary');
+        const terImg = document.querySelector('.achieve-img-tertiary');
+
+        if (mainImg && secImg && terImg) {
+            gsap.to(mainImg, {
+                y: -20,
+                scrollTrigger: {
+                    trigger: achieveGallery,
+                    start: "top bottom",
+                    end: "bottom top",
+                    scrub: 1.5
+                }
+            });
+
+            gsap.to(secImg, {
+                y: -35,
+                x: 10,
+                scrollTrigger: {
+                    trigger: achieveGallery,
+                    start: "top bottom",
+                    end: "bottom top",
+                    scrub: 2
+                }
+            });
+
+            gsap.to(terImg, {
+                y: -15,
+                x: -10,
+                scrollTrigger: {
+                    trigger: achieveGallery,
+                    start: "top bottom",
+                    end: "bottom top",
+                    scrub: 1
+                }
+            });
+        }
+    }
 
 })();
