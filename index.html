@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#060608" />
     <meta name="color-scheme" content="dark" />
+
     <meta name="description"
         content="Rajsv Mahendra — Backend Engineer & Data Systems Architect specializing in scalable systems, data analytics, and intelligent applications." />
     <meta name="author" content="Rajsv Mahendra" />
@@ -75,6 +76,7 @@
                 <li><a href="#about">About</a></li>
                 <li><a href="#skills">Skills</a></li>
                 <li><a href="#projects">Projects</a></li>
+                <li><a href="#certifications">Certifications</a></li>
                 <li><a href="#opensource">GitHub</a></li>
                 <li><a href="#contact">Contact</a></li>
             </ul>
@@ -306,48 +308,79 @@
                     <!-- RIGHT: ProfileCard + Terminal stacked -->
                     <div class="about-right">
 
-                        <!-- Profile Card — 3D tilt via JS -->
+                        <!-- Profile Card Wrapper — Contains flip mechanism -->
                         <div class="pc-card-wrapper" id="pc-wrapper">
-                            <section class="pc-card" id="pc-card">
-                                <div class="pc-inside">
-                                    <div class="pc-shine" aria-hidden="true"></div>
-                                    <div class="pc-glare" aria-hidden="true"></div>
+                            <div class="pc-flipper" id="pc-flipper">
 
-                                    <div class="pc-content pc-avatar-content">
-                                        <img class="pc-avatar-img" src="images/profile.png" alt="Rajsv Mahendra"
-                                            loading="lazy"
-                                            onerror="this.style.opacity='0';this.nextElementSibling.style.display='flex';">
-                                        <div class="pc-avatar-fallback" style="display:none;">RM</div>
+                                <!-- ═══════ FRONT FACE: Original Profile Card ═══════ -->
+                                <section class="pc-card pc-face pc-face-front" id="pc-card">
+                                    <div class="pc-inside">
+                                        <div class="pc-shine" aria-hidden="true"></div>
+                                        <div class="pc-glare" aria-hidden="true"></div>
 
-                                        <div class="pc-user-info">
-                                            <div class="pc-user-details">
-                                                <div class="pc-mini-avatar">
-                                                    <img src="images/profile.png" alt="mini avatar" loading="lazy"
-                                                        onerror="this.style.opacity='0.3';">
-                                                </div>
-                                                <div class="pc-user-text">
-                                                    <div class="pc-handle">@rajsvmahendra</div>
-                                                    <div class="pc-status-text">
-                                                        <span class="pc-status-dot"></span>
-                                                        Available
+                                        <div class="pc-content pc-avatar-content">
+                                            <img class="pc-avatar-img" src="images/profile.png" alt="Rajsv Mahendra"
+                                                loading="lazy"
+                                                onerror="this.style.opacity='0';this.nextElementSibling.style.display='flex';">
+                                            <div class="pc-avatar-fallback" style="display:none;">RM</div>
+
+                                            <div class="pc-user-info">
+                                                <div class="pc-user-details">
+                                                    <div class="pc-mini-avatar">
+                                                        <img src="images/profile.png" alt="mini avatar" loading="lazy"
+                                                            onerror="this.style.opacity='0.3';">
+                                                    </div>
+                                                    <div class="pc-user-text">
+                                                        <div class="pc-handle">@rajsvmahendra</div>
+                                                        <div class="pc-status-text">
+                                                            <span class="pc-status-dot"></span>
+                                                            Available
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <a href="#contact" class="pc-contact-btn">Contact</a>
                                             </div>
-                                            <a href="#contact" class="pc-contact-btn">Contact</a>
+                                        </div>
+
+                                        <div class="pc-content pc-bottom-content">
+                                            <div class="pc-details">
+                                                <h3>Rajsv Mahendra</h3>
+                                                <p>Backend Engineer & Data Architect</p>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div class="pc-content pc-bottom-content">
-                                        <div class="pc-details">
-                                            <h3>Rajsv Mahendra</h3>
-                                            <p>Backend Engineer & Data Architect</p>
-                                        </div>
+                                    <!-- Flip Button on Front -->
+                                    <button class="pc-flip-trigger" id="pc-flip-to-back" aria-label="View ID Badge">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round">
+                                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                            <path d="M3 3v5h5" />
+                                        </svg>
+                                    </button>
+                                </section>
+
+                                <!-- ═══════ BACK FACE: Lanyard ID Card ═══════ -->
+                                <div class="pc-card pc-face pc-face-back" id="pc-card-back">
+                                    <div class="pc-inside pc-lanyard-wrap">
+                                        <canvas id="lanyard-canvas"></canvas>
                                     </div>
+
+                                    <!-- Flip Button on Back -->
+                                    <button class="pc-flip-trigger pc-flip-trigger-back" id="pc-flip-to-front"
+                                        aria-label="View Profile">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            stroke-linecap="round">
+                                            <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                                            <path d="M21 3v5h-5" />
+                                        </svg>
+                                    </button>
                                 </div>
-                            </section>
+
+                            </div>
                         </div>
 
-                        <!-- Terminal -->
+                        <!-- Terminal — Unchanged, stays below profile card -->
                         <div class="terminal" role="presentation">
                             <div class="terminal-bar">
                                 <div class="t-dots" aria-hidden="true">
@@ -383,9 +416,10 @@
                         </div>
 
                     </div>
-                </div>
-            </div>
-        </section>
+
+                </div><!-- END about-grid -->
+            </div><!-- END container -->
+        </section><!-- END about section -->
 
         <!-- ========================================================
              4. SKILLS
@@ -400,12 +434,14 @@
                     <div class="skill-card glass" data-tilt data-tilt-max="5">
                         <p class="skill-cat">Programming Languages</p>
                         <div class="skill-pills">
-                            <span class="skill-pill"><i class="devicon-java-plain" aria-hidden="true"></i> Java</span>
+                            <span class="skill-pill"><i class="devicon-java-plain" aria-hidden="true"></i>
+                                Java</span>
                             <span class="skill-pill"><i class="devicon-python-plain" aria-hidden="true"></i>
                                 Python</span>
                             <span class="skill-pill"><i class="devicon-javascript-plain" aria-hidden="true"></i>
                                 JavaScript</span>
-                            <span class="skill-pill"><i class="devicon-mysql-plain" aria-hidden="true"></i> SQL</span>
+                            <span class="skill-pill"><i class="devicon-mysql-plain" aria-hidden="true"></i>
+                                SQL</span>
                         </div>
                     </div>
                     <div class="skill-card glass" data-tilt data-tilt-max="5">
@@ -441,7 +477,8 @@
                                 Machine Learning</span>
                             <span class="skill-pill"><i class="devicon-pandas-original" aria-hidden="true"></i> Data
                                 Analysis</span>
-                            <span class="skill-pill"><i class="devicon-azure-plain" aria-hidden="true"></i> Power
+                            <span class="skill-pill"><i class="devicon-azure-plain" aria-hidden="true"></i>
+                                Power
                                 BI</span>
                             <span class="skill-pill"><i class="devicon-matplotlib-plain" aria-hidden="true"></i>
                                 Visualization</span>
@@ -450,18 +487,22 @@
                 </div>
                 <div class="skills-extra glass">
                     <div class="skill-pills wrap">
-                        <span class="skill-pill"><i class="devicon-hadoop-plain" aria-hidden="true"></i> Hadoop</span>
+                        <span class="skill-pill"><i class="devicon-hadoop-plain" aria-hidden="true"></i>
+                            Hadoop</span>
                         <span class="skill-pill"><i class="devicon-mongodb-plain" aria-hidden="true"></i>
                             MongoDB</span>
-                        <span class="skill-pill"><i class="devicon-git-plain" aria-hidden="true"></i> Git/GitHub</span>
+                        <span class="skill-pill"><i class="devicon-git-plain" aria-hidden="true"></i>
+                            Git/GitHub</span>
                         <span class="skill-pill"><i class="devicon-streamlit-plain" aria-hidden="true"></i>
                             Streamlit</span>
-                        <span class="skill-pill"><i class="devicon-java-plain" aria-hidden="true"></i> JavaFX</span>
+                        <span class="skill-pill"><i class="devicon-java-plain" aria-hidden="true"></i>
+                            JavaFX</span>
                         <span class="skill-pill"><i class="devicon-androidstudio-plain" aria-hidden="true"></i> Android
                             Studio</span>
                         <span class="skill-pill"><i class="devicon-thealgorithms-plain" aria-hidden="true"></i>
                             DSA</span>
-                        <span class="skill-pill"><i class="devicon-archlinux-plain" aria-hidden="true"></i> System
+                        <span class="skill-pill"><i class="devicon-archlinux-plain" aria-hidden="true"></i>
+                            System
                             Design</span>
                         <span class="skill-pill"><i class="devicon-postgresql-plain" aria-hidden="true"></i>
                             DBMS</span>
@@ -489,17 +530,166 @@
                 <div class="carousel-wrap">
                     <div class="carousel-track" id="proj-track" role="list"></div>
                 </div>
-                <div class="carousel-dots" id="proj-dots" role="tablist" aria-label="Project pages"></div>
+                <div class="carousel-dots" id="proj-dots" role="tablist" aria-label="Project pages">
+                </div>
             </div>
         </section>
 
         <!-- ========================================================
-             6. GITHUB
+             6. CERTIFICATIONS
+        ======================================================== -->
+        <section id="certifications" class="section" style="padding-top:0;">
+            <div class="container">
+                <div class="text-center">
+                    <span class="sec-label">04 — Credentials</span>
+                    <h2 class="sec-heading">Certifications</h2>
+                    <p class="cert-intro">
+                        Professional certifications validating expertise in cloud technologies,
+                        software development, and emerging AI paradigms.
+                    </p>
+                </div>
+
+                <div class="cert-grid">
+
+                    <!-- Certificate 1: Oracle -->
+                    <a href="https://catalog-education.oracle.com/ords/certview/sharebadge?id=405FAB3784CB7B2AA4B02DA283F39FAA24F04AEC95ECE6B0A775AA77E28CC215"
+                        target="_blank" rel="noopener noreferrer" class="cert-card glass" data-tilt data-tilt-max="6">
+                        <div class="cert-badge">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round">
+                                <circle cx="12" cy="8" r="6" />
+                                <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
+                            </svg>
+                        </div>
+                        <div class="cert-content">
+                            <span class="cert-issuer">Oracle</span>
+                            <h3 class="cert-title">Cloud Infrastructure 2025 Certified Data Science Professional</h3>
+                            <div class="cert-meta">
+                                <span class="cert-date">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                                        <path d="M16 2v4M8 2v4M3 10h18" />
+                                    </svg>
+                                    Sep 2025
+                                </span>
+                            </div>
+                        </div>
+                        <div class="cert-arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round">
+                                <path d="M7 17L17 7M17 7H7M17 7v10" />
+                            </svg>
+                        </div>
+                        <div class="cert-shine"></div>
+                    </a>
+
+                    <!-- Certificate 2: Java -->
+                    <a href="https://drive.google.com/file/d/16WdXxo1rkA8cBrjsS8m7IpAEv7j5MLtb/view" target="_blank"
+                        rel="noopener noreferrer" class="cert-card glass" data-tilt data-tilt-max="6">
+                        <div class="cert-badge cert-badge-java">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round">
+                                <circle cx="12" cy="8" r="6" />
+                                <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
+                            </svg>
+                        </div>
+                        <div class="cert-content">
+                            <span class="cert-issuer">Professional Development</span>
+                            <h3 class="cert-title">Mastering JAVA for Application Development</h3>
+                            <div class="cert-meta">
+                                <span class="cert-date">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                                        <path d="M16 2v4M8 2v4M3 10h18" />
+                                    </svg>
+                                    Jul 2025
+                                </span>
+                            </div>
+                        </div>
+                        <div class="cert-arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round">
+                                <path d="M7 17L17 7M17 7H7M17 7v10" />
+                            </svg>
+                        </div>
+                        <div class="cert-shine"></div>
+                    </a>
+
+                    <!-- Certificate 3: Generative AI -->
+                    <a href="https://www.linkedin.com/learning/certificates/9c33ccf7c53ea9fa449ebeb7cf708aa3cafabba26165756d6a787725b1716e60?trk=share_certificate"
+                        target="_blank" rel="noopener noreferrer" class="cert-card glass" data-tilt data-tilt-max="6">
+                        <div class="cert-badge cert-badge-ai">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round">
+                                <circle cx="12" cy="8" r="6" />
+                                <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
+                            </svg>
+                        </div>
+                        <div class="cert-content">
+                            <span class="cert-issuer">Microsoft & LinkedIn Learning</span>
+                            <h3 class="cert-title">Generative AI Career Essentials</h3>
+                            <div class="cert-meta">
+                                <span class="cert-date">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                                        <path d="M16 2v4M8 2v4M3 10h18" />
+                                    </svg>
+                                    Oct 2023
+                                </span>
+                            </div>
+                        </div>
+                        <div class="cert-arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round">
+                                <path d="M7 17L17 7M17 7H7M17 7v10" />
+                            </svg>
+                        </div>
+                        <div class="cert-shine"></div>
+                    </a>
+
+                    <!-- Certificate 4: Communication -->
+                    <a href="https://www.linkedin.com/learning/certificates/d42cf2eeb2deb2826c2c49180313c97b8b075616e33f3d09f797c57b7eceb44e?trk=share_certificate"
+                        target="_blank" rel="noopener noreferrer" class="cert-card glass" data-tilt data-tilt-max="6">
+                        <div class="cert-badge cert-badge-comm">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round">
+                                <circle cx="12" cy="8" r="6" />
+                                <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
+                            </svg>
+                        </div>
+                        <div class="cert-content">
+                            <span class="cert-issuer">LinkedIn Learning</span>
+                            <h3 class="cert-title">Communication Skills & Interpersonal Influence</h3>
+                            <div class="cert-meta">
+                                <span class="cert-date">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                                        <path d="M16 2v4M8 2v4M3 10h18" />
+                                    </svg>
+                                    May 2023
+                                </span>
+                            </div>
+                        </div>
+                        <div class="cert-arrow">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round">
+                                <path d="M7 17L17 7M17 7H7M17 7v10" />
+                            </svg>
+                        </div>
+                        <div class="cert-shine"></div>
+                    </a>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================
+             7. GITHUB 
         ======================================================== -->
         <section id="opensource" class="section" style="padding-top:0;">
             <div class="container">
                 <div class="text-center">
-                    <span class="sec-label">04 — Open Source</span>
+                    <span class="sec-label">05 — Open Source</span>
                     <h2 class="sec-heading">GitHub Activity</h2>
                 </div>
                 <div class="github-container">
@@ -537,21 +727,23 @@
                         <div class="contribution-graph" id="gh-graph" aria-label="GitHub contribution graph">
                             <div class="graph-loading">Loading contributions...</div>
                         </div>
-                        <div class="graph-meta" id="graph-meta-text" aria-live="polite">Fetching data...</div>
+                        <div class="graph-meta" id="graph-meta-text" aria-live="polite">Fetching data...
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- ========================================================
-             7. CONTACT
+             8. CONTACT
         ======================================================== -->
         <section id="contact" class="section" style="padding-top:0;">
             <div class="container text-center">
-                <span class="sec-label">05 — Get in Touch</span>
+                <span class="sec-label">06 — Get in Touch</span>
                 <h2 class="sec-heading">Let's Collaborate</h2>
                 <p class="contact-intro">
-                    Available for internship opportunities, collaborative projects, and challenging technical problems.
+                    Available for internship opportunities, collaborative projects, and challenging
+                    technical problems.
                     Let's build something exceptional together.
                 </p>
                 <div class="contact-grid">
@@ -616,10 +808,11 @@
         </section>
 
         <!-- ========================================================
-             8. FOOTER — macOS Dock
+             9. FOOTER — macOS Dock
         ======================================================== -->
         <footer class="footer">
-            <p class="footer-text">&copy; 2025 Rajsv Mahendra — Engineered with precision and passion</p>
+            <p class="footer-text">&copy; 2025 Rajsv Mahendra — Engineered with precision and passion
+            </p>
 
             <nav class="dock" id="dock" aria-label="Quick navigation dock">
                 <div class="dock-container">
@@ -651,6 +844,13 @@
                             <path d="M8 21h8M12 17v4" />
                         </svg>
                     </a>
+                    <a href="#certifications" class="dock-item" data-label="Certs">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                            stroke-linecap="round">
+                            <circle cx="12" cy="8" r="6" />
+                            <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
+                        </svg>
+                    </a>
                     <a href="#opensource" class="dock-item" data-label="GitHub">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path
@@ -678,7 +878,6 @@
                 </div>
             </nav>
         </footer>
-
     </main>
 
     <!-- Scripts -->

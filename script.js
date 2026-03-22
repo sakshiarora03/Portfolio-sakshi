@@ -787,6 +787,7 @@ reveal(".skills-extra", { y: 20 });
 reveal(".c-card", { y: 24, stagger: 0.04, start: "top 96%" });
 reveal(".btn-resume", { y: 16, start: "top 96%" });
 reveal(".gh-profile-card", { y: 34 });
+reveal(".cert-card", { y: 28, stagger: 0.08 });
 reveal(".contribution-graph-wrapper", { y: 34 });
 
 
@@ -2277,3 +2278,730 @@ if ("scrollRestoration" in history) {
     history.scrollRestoration = "manual";
 }
 window.addEventListener("beforeunload", () => window.scrollTo(0, 0));
+
+/* ================================================================
+   LANYARD ID CARD — Flip Card with Verlet Rope Physics
+   ─────────────────────────────────────────────────────────────────
+   - NO initial movement - user controls everything
+   - LARGE clear profile photo
+   - PROPER font sizing that fits
+   - Gold/dark color scheme matching site
+================================================================ */
+(function initLanyardSystem() {
+    "use strict";
+
+    const flipper = document.getElementById("pc-flipper");
+    const wrapper = document.getElementById("pc-wrapper");
+    const btnToBack = document.getElementById("pc-flip-to-back");
+    const btnToFront = document.getElementById("pc-flip-to-front");
+    const canvas = document.getElementById("lanyard-canvas");
+
+    if (!flipper || !wrapper || !btnToBack || !btnToFront || !canvas) {
+        return;
+    }
+
+    let isFlipped = false;
+
+    // ═══════════════════════════════════════════════════════════════
+    // FLIP FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════
+    function flipToBack() {
+        if (isFlipped) return;
+        isFlipped = true;
+        flipper.classList.add("is-flipped");
+        wrapper.classList.add("is-flipped");
+        checkAnimationState();
+    }
+
+    function flipToFront() {
+        if (!isFlipped) return;
+        isFlipped = false;
+        flipper.classList.remove("is-flipped");
+        wrapper.classList.remove("is-flipped");
+        checkAnimationState();
+    }
+
+    btnToBack.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        flipToBack();
+    });
+
+    btnToFront.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        flipToFront();
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // CONFIGURATION
+    // ═══════════════════════════════════════════════════════════════
+    const CFG = {
+        // Rope
+        SEGMENTS: 14,
+        SEG_LEN: 12,
+        GRAVITY: 0.22,
+        DAMPING: 0.994,
+        ITERATIONS: 12,
+
+        // Card - BIGGER size
+        CARD_W: 180,
+        CARD_H: 260,
+        RADIUS: 14,
+
+        // Photo - LARGER and clearer
+        PHOTO_SIZE: 100,
+        PHOTO_Y: 42,
+
+        // Interaction
+        DRAG_STRENGTH: 0.22,
+        THROW_MULT: 0.12,
+
+        // Colors - matching site theme
+        ROPE_COLOR: 0xd4af37,
+        CARD_BG: "#08080c",
+        CARD_BG_LIGHT: "#0e0e14",
+        BORDER: "#d4af37",
+        GOLD: "#d4af37",
+        GOLD_DIM: "rgba(212, 175, 55, 0.6)",
+        TEXT_PRIMARY: "#f0ece2",
+        TEXT_SECONDARY: "#a8a4a0",
+        TEXT_MUTED: "#6b6966",
+        CYAN: "#00d4e8",
+        GREEN: "#10b981",
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // THREE.JS SETUP
+    // ═══════════════════════════════════════════════════════════════
+    const parent = canvas.parentElement;
+    let W = parent.offsetWidth || 460;
+    let H = parent.offsetHeight || 580;
+
+    const renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: true
+    });
+    renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+    renderer.setSize(W, H);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-W / 2, W / 2, H / 2, -H / 2, 1, 1000);
+    camera.position.z = 500;
+
+    // ═══════════════════════════════════════════════════════════════
+    // VERLET ROPE PHYSICS
+    // ═══════════════════════════════════════════════════════════════
+    class RopePoint {
+        constructor(x, y, fixed = false) {
+            this.x = x;
+            this.y = y;
+            this.prevX = x;
+            this.prevY = y;
+            this.fixed = fixed;
+        }
+    }
+
+    let anchorY = H / 2 - 35;
+    let ropePoints = [];
+
+    function createRope() {
+        ropePoints = [];
+        anchorY = H / 2 - 35;
+
+        for (let i = 0; i <= CFG.SEGMENTS; i++) {
+            const y = anchorY - i * CFG.SEG_LEN;
+            ropePoints.push(new RopePoint(0, y, i === 0));
+        }
+    }
+    createRope();
+
+    function simulatePhysics() {
+        // Verlet integration
+        for (const p of ropePoints) {
+            if (p.fixed) continue;
+
+            const vx = (p.x - p.prevX) * CFG.DAMPING;
+            const vy = (p.y - p.prevY) * CFG.DAMPING;
+
+            p.prevX = p.x;
+            p.prevY = p.y;
+
+            p.x += vx;
+            p.y += vy - CFG.GRAVITY;
+        }
+
+        // Constraints
+        for (let iter = 0; iter < CFG.ITERATIONS; iter++) {
+            for (let i = 0; i < ropePoints.length - 1; i++) {
+                const p1 = ropePoints[i];
+                const p2 = ropePoints[i + 1];
+
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+                const diff = (CFG.SEG_LEN - dist) / dist * 0.5;
+
+                const ox = dx * diff;
+                const oy = dy * diff;
+
+                if (!p1.fixed) { p1.x -= ox; p1.y -= oy; }
+                if (!p2.fixed) { p2.x += ox; p2.y += oy; }
+            }
+
+            ropePoints[0].x = 0;
+            ropePoints[0].y = anchorY;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CARD TEXTURE — PROPER SIZING AND COLORS
+    // ═══════════════════════════════════════════════════════════════
+    const texCanvas = document.createElement("canvas");
+    const ctx = texCanvas.getContext("2d");
+    const SCALE = 5; // High resolution
+    texCanvas.width = CFG.CARD_W * SCALE;
+    texCanvas.height = CFG.CARD_H * SCALE;
+
+    // const cardTexture = new THREE.CanvasTexture(texCanvas);
+    // cardTexture.minFilter = THREE.LinearFilter;
+    // cardTexture.magFilter = THREE.LinearFilter;
+
+    const cardTexture = new THREE.CanvasTexture(texCanvas);
+    cardTexture.minFilter = THREE.LinearFilter;
+    cardTexture.magFilter = THREE.LinearFilter;
+    cardTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    cardTexture.generateMipmaps = false;
+    cardTexture.needsUpdate = true;
+
+    // Profile image
+    const profileImg = new Image();
+    profileImg.crossOrigin = "anonymous";
+    let imgReady = false;
+
+    profileImg.onload = () => {
+        imgReady = true;
+        renderCardTexture();
+    };
+    profileImg.onerror = () => {
+        imgReady = false;
+        renderCardTexture();
+    };
+    profileImg.src = "images/profile.png";
+
+    function renderCardTexture() {
+        const w = texCanvas.width;
+        const h = texCanvas.height;
+        const s = SCALE;
+        const r = CFG.RADIUS * s;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // ─── CARD BACKGROUND ───
+        ctx.beginPath();
+        ctx.roundRect(0, 0, w, h, r);
+
+        // Dark gradient background matching site
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+        bgGrad.addColorStop(0, CFG.CARD_BG_LIGHT);
+        bgGrad.addColorStop(0.5, CFG.CARD_BG);
+        bgGrad.addColorStop(1, "#050508");
+        ctx.fillStyle = bgGrad;
+        ctx.fill();
+
+        // // Subtle inner glow
+        // const glow = ctx.createRadialGradient(w / 2, h * 0.3, 0, w / 2, h * 0.3, w * 0.8);
+        // glow.addColorStop(0, "rgba(212, 175, 55, 0.03)");
+        // glow.addColorStop(1, "transparent");
+        // ctx.fillStyle = glow;
+        // ctx.fill();
+
+        // Subtle inner glow - BELOW photo area only
+        const glow = ctx.createRadialGradient(w / 2, h * 0.75, 0, w / 2, h * 0.75, w * 0.6);
+        glow.addColorStop(0, "rgba(212, 175, 55, 0.02)");
+        glow.addColorStop(1, "transparent");
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // Gold border
+        ctx.strokeStyle = CFG.BORDER;
+        ctx.lineWidth = 2 * s;
+        ctx.stroke();
+
+        // ─── TOP GOLD ACCENT LINE ───
+        const topGrad = ctx.createLinearGradient(0, 0, w, 0);
+        topGrad.addColorStop(0, "transparent");
+        topGrad.addColorStop(0.2, CFG.GOLD_DIM);
+        topGrad.addColorStop(0.5, CFG.GOLD);
+        topGrad.addColorStop(0.8, CFG.GOLD_DIM);
+        topGrad.addColorStop(1, "transparent");
+
+        ctx.beginPath();
+        ctx.moveTo(r, 2 * s);
+        ctx.lineTo(w - r, 2 * s);
+        ctx.strokeStyle = topGrad;
+        ctx.lineWidth = 2 * s;
+        ctx.stroke();
+
+        // ─── LANYARD HOLE ───
+        const holeY = 18 * s;
+        const holeW = 28 * s;
+        const holeH = 9 * s;
+
+        ctx.beginPath();
+        ctx.roundRect(w / 2 - holeW / 2, holeY - holeH / 2, holeW, holeH, holeH / 2);
+        ctx.fillStyle = "#020203";
+        ctx.fill();
+        ctx.strokeStyle = CFG.GOLD_DIM;
+        ctx.lineWidth = 1.5 * s;
+        ctx.stroke();
+
+        // Metal ring in hole
+        ctx.beginPath();
+        ctx.arc(w / 2, holeY, 3.5 * s, 0, Math.PI * 2);
+        ctx.strokeStyle = CFG.GOLD;
+        ctx.lineWidth = 1.5 * s;
+        ctx.stroke();
+
+        // ─── PROFILE PHOTO — LARGE AND CLEAR ───
+        const photoSize = CFG.PHOTO_SIZE * s;
+        const photoY = CFG.PHOTO_Y * s;
+        const photoCX = w / 2;
+        const photoCY = photoY + photoSize / 2;
+
+        // // Outer glow ring
+        // ctx.save();
+        // ctx.shadowColor = CFG.GOLD;
+        // ctx.shadowBlur = 25 * s;
+        // ctx.beginPath();
+        // ctx.arc(photoCX, photoCY, photoSize / 2 + 4 * s, 0, Math.PI * 2);
+        // ctx.strokeStyle = CFG.GOLD;
+        // ctx.lineWidth = 2.5 * s;
+        // ctx.stroke();
+        // ctx.restore();
+
+        // Clean gold ring - NO blur/glow effect
+        ctx.beginPath();
+        ctx.arc(photoCX, photoCY, photoSize / 2 + 3 * s, 0, Math.PI * 2);
+        ctx.strokeStyle = CFG.GOLD;
+        ctx.lineWidth = 2.5 * s;
+        ctx.stroke();
+
+        // Subtle outer ring
+        ctx.beginPath();
+        ctx.arc(photoCX, photoCY, photoSize / 2 + 6 * s, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(212, 175, 55, 0.2)";
+        ctx.lineWidth = 1 * s;
+        ctx.stroke();
+
+        // Photo circle
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(photoCX, photoCY, photoSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+
+        // if (imgReady && profileImg.naturalWidth > 0) {
+        //     // Draw image - center crop
+        //     const iw = profileImg.naturalWidth;
+        //     const ih = profileImg.naturalHeight;
+        //     const minD = Math.min(iw, ih);
+        //     const sx = (iw - minD) / 2;
+        //     const sy = (ih - minD) / 2;
+
+        //     ctx.imageSmoothingEnabled = true;
+        //     ctx.imageSmoothingQuality = "high";
+        //     ctx.drawImage(
+        //         profileImg,
+        //         sx, sy, minD, minD,
+        //         photoCX - photoSize / 2, photoY, photoSize, photoSize
+        //     );
+        // } 
+
+        if (imgReady && profileImg.naturalWidth > 0) {
+            // Draw image - center crop with MAXIMUM quality
+            const iw = profileImg.naturalWidth;
+            const ih = profileImg.naturalHeight;
+            const minD = Math.min(iw, ih);
+            const sx = (iw - minD) / 2;
+            const sy = (ih - minD) / 2;
+
+            // Disable smoothing for sharper result
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+
+            // Clear any previous content in photo area
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(photoCX, photoCY, photoSize / 2, 0, Math.PI * 2);
+            ctx.clip();
+
+            // Fill with solid black first to prevent transparency issues
+            ctx.fillStyle = "#000";
+            ctx.fillRect(photoCX - photoSize / 2, photoY, photoSize, photoSize);
+
+            // Draw the image
+            ctx.drawImage(
+                profileImg,
+                sx, sy, minD, minD,
+                photoCX - photoSize / 2, photoY, photoSize, photoSize
+            );
+            ctx.restore();
+        }
+        else {
+            // Fallback - gold gradient with initials
+            const fbGrad = ctx.createLinearGradient(photoCX - photoSize / 2, photoY, photoCX + photoSize / 2, photoY + photoSize);
+            fbGrad.addColorStop(0, CFG.GOLD);
+            fbGrad.addColorStop(1, "#8a6914");
+            ctx.fillStyle = fbGrad;
+            ctx.fillRect(photoCX - photoSize / 2, photoY, photoSize, photoSize);
+
+            ctx.fillStyle = "#0a0a08";
+            ctx.font = `bold ${22 * s}px 'Syne', sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("RM", photoCX, photoCY);
+        }
+        ctx.restore();
+
+        // // Inner photo border
+        // ctx.beginPath();
+        // ctx.arc(photoCX, photoCY, photoSize / 2 - 1 * s, 0, Math.PI * 2);
+        // ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        // ctx.lineWidth = 1 * s;
+        // ctx.stroke();
+
+        // ─── NAME — SMALL FONT TO FIT ───
+        // ─── NAME ──      
+        const nameY = photoY + photoSize + 18 * s;
+
+        ctx.fillStyle = CFG.TEXT_PRIMARY;
+        ctx.font = `800 ${9 * s}px 'Syne', sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+
+        // Add subtle glow
+        ctx.save();
+        ctx.shadowColor = CFG.GOLD;
+        ctx.shadowBlur = 6 * s;
+        ctx.fillText("RAJSV MAHENDRA", w / 2, nameY);
+        ctx.restore();
+
+        // ─── ROLE ───
+        const roleY = nameY + 16 * s;
+        ctx.fillStyle = CFG.TEXT_SECONDARY;
+        ctx.font = `500 ${6.5 * s}px 'JetBrains Mono', monospace`;
+        ctx.fillText("Backend Engineer", w / 2, roleY);
+        ctx.fillText("& Data Architect", w / 2, roleY + 10 * s);
+
+        // ─── DIVIDER ───
+        const divY = roleY + 30 * s;
+        const divGrad = ctx.createLinearGradient(w * 0.15, 0, w * 0.85, 0);
+        divGrad.addColorStop(0, "transparent");
+        divGrad.addColorStop(0.3, CFG.GOLD_DIM);
+        divGrad.addColorStop(0.5, CFG.GOLD);
+        divGrad.addColorStop(0.7, CFG.GOLD_DIM);
+        divGrad.addColorStop(1, "transparent");
+
+        ctx.beginPath();
+        ctx.moveTo(w * 0.15, divY);
+        ctx.lineTo(w * 0.85, divY);
+        ctx.strokeStyle = divGrad;
+        ctx.lineWidth = 1 * s;
+        ctx.stroke();
+
+        // ─── STATUS ──
+        // ─── STATUS — CENTERED ───
+        const statusY = divY + 18 * s;
+
+        // Measure text to center everything
+        ctx.font = `600 ${6 * s}px 'JetBrains Mono', monospace`;
+        const statusText = "AVAILABLE";
+        const textWidth = ctx.measureText(statusText).width;
+        const dotRadius = 4 * s;
+        const gap = 8 * s;
+        const totalWidth = dotRadius * 2 + gap + textWidth;
+        const startX = (w - totalWidth) / 2;
+
+        // Green dot with subtle glow
+        ctx.save();
+        ctx.shadowColor = CFG.GREEN;
+        ctx.shadowBlur = 6 * s;
+        ctx.beginPath();
+        ctx.arc(startX + dotRadius, statusY, dotRadius, 0, Math.PI * 2);
+        ctx.fillStyle = CFG.GREEN;
+        ctx.fill();
+        ctx.restore();
+
+        // Status text
+        ctx.fillStyle = CFG.TEXT_PRIMARY;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(statusText, startX + dotRadius * 2 + gap, statusY);
+
+        // ─── BOTTOM DECORATION ───
+        const botY = h - 20 * s;
+
+        // Small triangles
+        ctx.fillStyle = "rgba(212, 175, 55, 0.1)";
+        ctx.beginPath();
+        ctx.moveTo(w * 0.15, botY);
+        ctx.lineTo(w * 0.15 + 6 * s, botY - 4 * s);
+        ctx.lineTo(w * 0.15 + 12 * s, botY);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(w * 0.85, botY);
+        ctx.lineTo(w * 0.85 - 6 * s, botY - 4 * s);
+        ctx.lineTo(w * 0.85 - 12 * s, botY);
+        ctx.closePath();
+        ctx.fill();
+
+        cardTexture.needsUpdate = true;
+    }
+
+    // Render after fonts load
+    if (document.fonts?.ready) {
+        document.fonts.ready.then(() => setTimeout(renderCardTexture, 100));
+    }
+    renderCardTexture();
+
+    // ═══════════════════════════════════════════════════════════════
+    // THREE.JS MESHES
+    // ═══════════════════════════════════════════════════════════════
+
+    // Anchor
+    const anchorMesh = new THREE.Mesh(
+        new THREE.CircleGeometry(7, 18),
+        new THREE.MeshBasicMaterial({ color: CFG.ROPE_COLOR })
+    );
+    anchorMesh.position.set(0, anchorY, 10);
+    scene.add(anchorMesh);
+
+    // Anchor hole
+    const anchorHole = new THREE.Mesh(
+        new THREE.CircleGeometry(3, 14),
+        new THREE.MeshBasicMaterial({ color: 0x060608 })
+    );
+    anchorHole.position.set(0, anchorY, 11);
+    scene.add(anchorHole);
+
+    // Rope segments
+    const ropeMeshes = [];
+    for (let i = 0; i < CFG.SEGMENTS; i++) {
+        const seg = new THREE.Mesh(
+            new THREE.CylinderGeometry(2, 2, CFG.SEG_LEN, 6),
+            new THREE.MeshBasicMaterial({ color: CFG.ROPE_COLOR })
+        );
+        scene.add(seg);
+        ropeMeshes.push(seg);
+    }
+
+    // Clip
+    const clipMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(20, 10, 5),
+        new THREE.MeshBasicMaterial({ color: CFG.ROPE_COLOR })
+    );
+    scene.add(clipMesh);
+
+    // Card
+    const cardMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(CFG.CARD_W, CFG.CARD_H),
+        new THREE.MeshBasicMaterial({ map: cardTexture, transparent: true, side: THREE.DoubleSide })
+    );
+    scene.add(cardMesh);
+
+    // ═══════════════════════════════════════════════════════════════
+    // UPDATE VISUALS
+    // ═══════════════════════════════════════════════════════════════
+    function updateMeshes() {
+        for (let i = 0; i < ropeMeshes.length; i++) {
+            const p1 = ropePoints[i];
+            const p2 = ropePoints[i + 1];
+            if (!p1 || !p2) continue;
+
+            ropeMeshes[i].position.set((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, 0);
+            ropeMeshes[i].rotation.z = -Math.atan2(p2.x - p1.x, p2.y - p1.y);
+        }
+
+        const last = ropePoints[ropePoints.length - 1];
+        const prev = ropePoints[ropePoints.length - 2];
+        if (!last || !prev) return;
+
+        const rot = Math.atan2(last.x - prev.x, -(last.y - prev.y));
+
+        clipMesh.position.set(last.x, last.y, 5);
+        clipMesh.rotation.z = rot;
+
+        const dist = CFG.CARD_H / 2 + 7;
+        cardMesh.position.set(
+            last.x + Math.sin(rot) * dist,
+            last.y - Math.cos(rot) * dist,
+            0
+        );
+        cardMesh.rotation.z = rot;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // DRAG INTERACTION
+    // ═══════════════════════════════════════════════════════════════
+    let dragging = false;
+    let lastX = 0, lastY = 0;
+    let velX = 0, velY = 0;
+
+    function toWorld(e) {
+        const rect = canvas.getBoundingClientRect();
+        const cx = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
+        const cy = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+        return {
+            x: cx - rect.left - rect.width / 2,
+            y: -(cy - rect.top - rect.height / 2)
+        };
+    }
+
+    function onDown(e) {
+        if (!isFlipped) return;
+        e.preventDefault();
+        e.stopPropagation();
+        dragging = true;
+        const p = toWorld(e);
+        lastX = p.x;
+        lastY = p.y;
+        velX = 0;
+        velY = 0;
+        canvas.style.cursor = "grabbing";
+    }
+
+    function onMove(e) {
+        if (!dragging || !isFlipped) return;
+        const p = toWorld(e);
+        const dx = p.x - lastX;
+        const dy = p.y - lastY;
+        velX = dx;
+        velY = dy;
+
+        // Apply to all points except anchor
+        for (let i = 1; i < ropePoints.length; i++) {
+            const factor = i / ropePoints.length;
+            ropePoints[i].x += dx * CFG.DRAG_STRENGTH * factor;
+            ropePoints[i].y += dy * CFG.DRAG_STRENGTH * factor;
+        }
+
+        lastX = p.x;
+        lastY = p.y;
+    }
+
+    function onUp() {
+        if (!dragging) return;
+        dragging = false;
+        canvas.style.cursor = "grab";
+
+        // Apply momentum
+        for (let i = Math.floor(ropePoints.length * 0.5); i < ropePoints.length; i++) {
+            const p = ropePoints[i];
+            if (!p.fixed) {
+                const f = (i - ropePoints.length * 0.5) / (ropePoints.length * 0.5);
+                p.prevX = p.x - velX * CFG.THROW_MULT * f;
+                p.prevY = p.y - velY * CFG.THROW_MULT * f;
+            }
+        }
+    }
+
+    canvas.addEventListener("mousedown", onDown);
+    canvas.addEventListener("touchstart", onDown, { passive: false });
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchend", onUp);
+
+    // ═══════════════════════════════════════════════════════════════
+    // RESIZE
+    // ═══════════════════════════════════════════════════════════════
+    let resizeTimer;
+    function handleResize() {
+        W = parent.offsetWidth || 460;
+        H = parent.offsetHeight || 580;
+
+        camera.left = -W / 2;
+        camera.right = W / 2;
+        camera.top = H / 2;
+        camera.bottom = -H / 2;
+        camera.updateProjectionMatrix();
+        renderer.setSize(W, H);
+
+        anchorY = H / 2 - 35;
+        if (ropePoints[0]) {
+            ropePoints[0].y = anchorY;
+            ropePoints[0].prevY = anchorY;
+        }
+        anchorMesh.position.y = anchorY;
+        anchorHole.position.y = anchorY;
+    }
+
+    window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(handleResize, 150);
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // ANIMATION LOOP
+    // ═══════════════════════════════════════════════════════════════
+    let isVisible = false;
+    let isPaused = false;
+    let animId = null;
+
+    function startAnim() {
+        if (animId !== null) return;
+        animId = requestAnimationFrame(animate);
+    }
+
+    function stopAnim() {
+        if (animId !== null) {
+            cancelAnimationFrame(animId);
+            animId = null;
+        }
+    }
+
+    function checkAnimationState() {
+        if (isVisible && !isPaused && isFlipped) {
+            startAnim();
+        } else {
+            stopAnim();
+        }
+    }
+
+    function animate() {
+        if (isPaused || !isVisible || !isFlipped) {
+            animId = null;
+            return;
+        }
+
+        simulatePhysics();
+        updateMeshes();
+        renderer.render(scene, camera);
+        animId = requestAnimationFrame(animate);
+    }
+
+    // Visibility
+    new IntersectionObserver(([e]) => {
+        isVisible = e.isIntersecting;
+        checkAnimationState();
+    }, { threshold: 0.01 }).observe(parent);
+
+    document.addEventListener("visibilitychange", () => {
+        isPaused = document.hidden;
+        checkAnimationState();
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // INITIAL SETUP — NO AUTOMATIC MOVEMENT
+    // ═══════════════════════════════════════════════════════════════
+    setTimeout(() => {
+        handleResize();
+        updateMeshes();
+        renderer.render(scene, camera);
+        // NO initial swing - card hangs still until user drags it
+    }, 100);
+
+})();
