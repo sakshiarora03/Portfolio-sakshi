@@ -1100,7 +1100,7 @@ const PROJECTS = [
         tags: ["Python", "NLP", "OpenAI", "Streamlit"],
         img: "images/mailflow.jpg",
         grad: "linear-gradient(135deg,#0a0a10,#12100a)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "02",
@@ -1109,7 +1109,7 @@ const PROJECTS = [
         tags: ["React", "JavaScript", "CSS3", "API"],
         img: "images/youtube.jpg",
         grad: "linear-gradient(135deg,#120808,#0e0a12)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "03",
@@ -1118,7 +1118,7 @@ const PROJECTS = [
         tags: ["Python", "Scikit-learn", "Pandas", "Streamlit"],
         img: "images/fraud.png",
         grad: "linear-gradient(135deg,#080c10,#0a1014)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "04",
@@ -1127,7 +1127,7 @@ const PROJECTS = [
         tags: ["Power BI", "DAX", "Data Modeling", "SQL"],
         img: "images/qsr.png",
         grad: "linear-gradient(135deg,#100c06,#0a0c14)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "05",
@@ -1136,7 +1136,7 @@ const PROJECTS = [
         tags: ["HTML5", "CSS3", "JavaScript", "Bootstrap"],
         img: "images/ministore.jpg",
         grad: "linear-gradient(135deg,#0a0e0a,#100e08)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "06",
@@ -1145,7 +1145,7 @@ const PROJECTS = [
         tags: ["Java", "JavaFX", "SQLite", "MVC"],
         img: "images/uintrack.jpg",
         grad: "linear-gradient(135deg,#0c0a12,#100e18)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "07",
@@ -1154,7 +1154,7 @@ const PROJECTS = [
         tags: ["Node.js", "Socket.IO", "Express", "MongoDB"],
         img: "images/chat.jpg",
         grad: "linear-gradient(135deg,#080e14,#0c0a10)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "08",
@@ -1163,7 +1163,7 @@ const PROJECTS = [
         tags: ["MongoDB", "Express", "React", "Node.js"],
         img: "images/CMS.jpg",
         grad: "linear-gradient(135deg,#080c08,#0a0e14)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "09",
@@ -1172,7 +1172,7 @@ const PROJECTS = [
         tags: ["Python", "Tkinter", "Matplotlib", "Algorithms"],
         img: "images/MemoryVizualiser.jpg",
         grad: "linear-gradient(135deg,#060a10,#0e0a14)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
     {
         n: "10",
@@ -1181,7 +1181,7 @@ const PROJECTS = [
         tags: ["HTML5", "CSS3", "JavaScript", "UX/UI"],
         img: "images/Ecothunder.jpg",
         grad: "linear-gradient(135deg,#060e08,#0a0c08)",
-        github: "https://github.com/rajsvmahendra",
+        github: "https://github.com/SakshiArora",
     },
 ];
 
@@ -1356,16 +1356,27 @@ setTimeout(initTilt, 300);
 /* ================================================================
    GITHUB API  — Fixed stats, compact graph, reliable fallbacks
 ================================================================ */
-const GITHUB_USERNAME = "rajsvmahendra";
+const GITHUB_USERNAME = "SakshiArora";
+
+// Fallback static profile data in case API fails
+const FALLBACK_PROFILE = {
+    name: "Sakshi Arora",
+    bio: "Computer Science Engineering Student | Data Analytics & Machine Learning Enthusiast",
+    public_repos: 45,
+    followers: 120,
+    following: 35,
+    login: "SakshiArora",
+    avatar_url: "images/Profile.JPG"
+};
 
 // Hardcoded fallback stats — used when API fails or returns 0
 const GH_FALLBACK = {
-    public_repos: 45, // Bumped up for maximum numbers
-    followers: 120,   // Bumped up for maximum numbers
-    following: 35,
-    bio: "Backend Engineer & Data Systems Architect",
-    avatar_url: null,
-    login: "rajsvmahendra",
+    public_repos: FALLBACK_PROFILE.public_repos, // Bumped up for maximum numbers
+    followers: FALLBACK_PROFILE.followers,   // Bumped up for maximum numbers
+    following: FALLBACK_PROFILE.following,
+    bio: FALLBACK_PROFILE.bio,
+    avatar_url: FALLBACK_PROFILE.avatar_url,
+    login: FALLBACK_PROFILE.login,
 };
 
 async function fetchGitHubProfile() {
@@ -1717,11 +1728,11 @@ if (labSection && labCanvas) {
         bgCtx.shadowColor = THEME.rgba(THEME.gold, 0.15);
         bgCtx.shadowBlur = ts * 0.4;
         bgCtx.fillStyle = THEME.rgba(THEME.gold, 0.07);
-        bgCtx.fillText("RAJSV", W * 0.5, H * 0.42);
+        bgCtx.fillText("SAKSHI", W * 0.5, H * 0.42);
         bgCtx.restore();
 
         bgCtx.fillStyle = THEME.rgba(THEME.gold, 0.065);
-        bgCtx.fillText("RAJSV", W * 0.5, H * 0.42);
+        bgCtx.fillText("SAKSHI", W * 0.5, H * 0.42);
 
         const ss = Math.round(W * 0.024);
         bgCtx.font = `600 ${ss}px 'JetBrains Mono', 'DM Mono', monospace`;
@@ -1730,11 +1741,11 @@ if (labSection && labCanvas) {
         bgCtx.shadowColor = THEME.rgba(THEME.gold, 0.1);
         bgCtx.shadowBlur = ss * 2;
         bgCtx.fillStyle = THEME.rgba(THEME.gold, 0.055);
-        bgCtx.fillText("DATA  ·  BACKEND  ·  SYSTEMS", W * 0.5, H * 0.42 + ts * 0.9);
+        bgCtx.fillText("DATA ANALYTICS & ML ENTHUSIAST", W * 0.5, H * 0.42 + ts * 0.9);
         bgCtx.restore();
 
         bgCtx.fillStyle = THEME.rgba(THEME.gold, 0.05);
-        bgCtx.fillText("DATA  ·  BACKEND  ·  SYSTEMS", W * 0.5, H * 0.42 + ts * 0.9);
+        bgCtx.fillText("DATA ANALYTICS & ML ENTHUSIAST", W * 0.5, H * 0.42 + ts * 0.9);
 
         bgTexture.needsUpdate = true;
     }
@@ -1940,6 +1951,7 @@ void main() {
         for (let i = 0; i < drops.length; i++) {
             const a = drops[i];
             for (let j = i + 1; j < drops.length; j++) {
+                if (!drops[j].alive) continue;
                 const b = drops[j],
                     dx = b.x - a.x,
                     dy = b.y - a.y;
@@ -2490,7 +2502,7 @@ window.addEventListener("beforeunload", () => window.scrollTo(0, 0));
         imgReady = false;
         renderCardTexture();
     };
-    profileImg.src = "images/profile.png";
+    profileImg.src = "images/Profile.JPG";
 
     function renderCardTexture() {
         const w = texCanvas.width;
@@ -2662,7 +2674,7 @@ window.addEventListener("beforeunload", () => window.scrollTo(0, 0));
             ctx.font = `bold ${22 * s}px 'Syne', sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("RM", photoCX, photoCY);
+            ctx.fillText("SA", photoCX, photoCY);
         }
         ctx.restore();
 
@@ -2686,15 +2698,15 @@ window.addEventListener("beforeunload", () => window.scrollTo(0, 0));
         ctx.save();
         ctx.shadowColor = CFG.GOLD;
         ctx.shadowBlur = 6 * s;
-        ctx.fillText("RAJSV MAHENDRA", w / 2, nameY);
+        ctx.fillText("SAKSHI ARORA", w / 2, nameY);
         ctx.restore();
 
         // ─── ROLE ───
         const roleY = nameY + 16 * s;
         ctx.fillStyle = CFG.TEXT_SECONDARY;
         ctx.font = `500 ${6.5 * s}px 'JetBrains Mono', monospace`;
-        ctx.fillText("Backend Engineer", w / 2, roleY);
-        ctx.fillText("& Data Architect", w / 2, roleY + 10 * s);
+        ctx.fillText("Data Analytics", w / 2, roleY);
+        ctx.fillText("& ML Enthusiast", w / 2, roleY + 10 * s);
 
         // ─── DIVIDER ───
         const divY = roleY + 30 * s;
@@ -3152,33 +3164,7 @@ window.addEventListener("beforeunload", () => window.scrollTo(0, 0));
             });
         }
 
-        // Achievement stats counter animation
-        const statVals = document.querySelectorAll('.achieve-stat-val');
-        statVals.forEach((el) => {
-            const text = el.textContent;
-            const isNumber = /^\d+/.test(text);
 
-            if (isNumber) {
-                const num = parseInt(text);
-                const suffix = text.replace(/^\d+/, '');
-
-                ScrollTrigger.create({
-                    trigger: el,
-                    start: "top 90%",
-                    once: true,
-                    onEnter: () => {
-                        gsap.from({ val: 0 }, {
-                            val: num,
-                            duration: 1.5,
-                            ease: "power2.out",
-                            onUpdate: function () {
-                                el.textContent = Math.round(this.targets()[0].val) + suffix;
-                            }
-                        });
-                    }
-                });
-            }
-        });
     }
 
     // ═══════════════════════════════════════════════════════════════
