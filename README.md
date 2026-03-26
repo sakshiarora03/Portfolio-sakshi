@@ -1,4 +1,4 @@
-# Rajsv Mahendra — Developer Portfolio
+# Sakshi Arora — Developer Portfolio
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Site-4f8fff?style=for-the-badge\&logo=vercel\&logoColor=white)](https://rajsvmahendra.github.io/rajsvmahendra-portfolio/#lab)
 
